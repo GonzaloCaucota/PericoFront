@@ -1,0 +1,76 @@
+@use 'variables' as *;
+
+@use 'variables' as *;
+
+body {
+
+    font-family: $font-family;
+
+    background-color: $background;
+
+    color: $text;
+
+    min-height: 100vh;
+
+    overflow-x: hidden;
+
+    margin: 0;
+
+    padding: 0;
+
+    -webkit-font-smoothing: antialiased;
+
+    -moz-osx-font-smoothing: grayscale;
+
+}
+
+*,
+*::before,
+*::after {
+
+    box-sizing: border-box;
+
+}
+
+.shadow-custom{
+
+    box-shadow:$shadow-md;
+
+}
+
+.rounded-custom{
+
+    border-radius:$radius-md;
+
+}
+
+.cursor-pointer{
+
+    cursor:pointer;
+
+}
+
+.transition{
+
+    transition:$transition;
+
+}
+
+.hover-scale{
+
+    transition:$transition;
+
+}
+
+.hover-scale:hover{
+
+    transform:scale(1.03);
+
+}
+
+:root {
+  
+  --bs-primary: #0284c7;
+  
+  --bs-primary-rgb: 2, 132, 199; 
+}

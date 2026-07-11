@@ -1,0 +1,22 @@
+@use './assets/styles/variables';
+@use './assets/styles/mixins';
+@use './assets/styles/utilities';
+@use './assets/styles/buttons';
+@use './assets/styles/cards';
+@use './assets/styles/forms';
+@use './assets/styles/tables';
+@use './assets/styles/navbar';
+@use './assets/styles/sidebar';
+@use './assets/styles/animations';
+@use './assets/styles/responsive';
+
+.map-marker {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  box-shadow: 0 .35rem .85rem rgba(0, 0, 0, .25);
+}

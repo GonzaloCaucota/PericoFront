@@ -1,0 +1,73 @@
+@use 'variables' as *;
+
+.btn-custom{
+
+    border-radius:$radius-md;
+
+    transition:$transition;
+
+    font-weight:500;
+
+}
+
+.btn-custom:hover{
+
+    transform:translateY(-2px);
+
+}
+
+.btn-primary-custom{
+
+    @extend .btn-custom;
+
+    background:$primary;
+
+    color:white;
+
+}
+
+.btn-success-custom{
+
+    @extend .btn-custom;
+
+    background:$success;
+
+    color:white;
+
+}
+
+.btn-danger-custom{
+
+    @extend .btn-custom;
+
+    background:$danger;
+
+    color:white;
+
+}
+
+.btn-outline-primary {
+  color: $primary;
+  border: 1px solid $primary;
+  background-color: transparent;
+  transition: $transition;
+}
+
+.btn-outline-primary:hover {
+  background-color: $primary;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.nav-pills .nav-link.active, 
+.nav-pills .show > .nav-link {
+  background-color: $primary !important;
+  color: #ffffff !important;
+}
+
+.nav-pills .nav-link {
+  color: $secondary;
+  background-color: $light;
+  border: 1px solid transparent;
+}
+

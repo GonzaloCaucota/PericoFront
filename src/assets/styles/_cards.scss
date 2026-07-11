@@ -1,0 +1,21 @@
+@use 'variables' as *;
+
+.card-custom{
+
+    border:none;
+
+    border-radius:$radius-lg;
+
+    box-shadow:$shadow-sm;
+
+    transition:$transition;
+
+}
+
+.card-custom:hover{
+
+    box-shadow:$shadow-lg;
+
+    transform:translateY(-4px);
+
+}

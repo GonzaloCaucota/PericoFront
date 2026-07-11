@@ -1,0 +1,423 @@
+=========================================================
+SSR MINING
+FRONT-END DESIGN SYSTEM
+Angular 22 + Bootstrap 5 + SCSS
+=========================================================
+
+El proyecto utiliza Angular 22 con Standalone Components.
+
+Tecnologías:
+
+- Angular 22
+- Bootstrap 5.3
+- Bootstrap Icons
+- SCSS
+- Google Fonts (Poppins)
+
+---------------------------------------------------------
+ESTRUCTURA DE ESTILOS
+---------------------------------------------------------
+
+styles.scss
+
+@use './assets/styles/variables';
+@use './assets/styles/mixins';
+@use './assets/styles/utilities';
+@use './assets/styles/buttons';
+@use './assets/styles/cards';
+@use './assets/styles/forms';
+@use './assets/styles/tables';
+@use './assets/styles/navbar';
+@use './assets/styles/sidebar';
+@use './assets/styles/animations';
+@use './assets/styles/responsive';
+
+---------------------------------------------------------
+_variables.scss
+---------------------------------------------------------
+
+Colores institucionales
+
+$primary: #0d6efd;
+$secondary: #6c757d;
+
+$success: #198754;
+$danger: #dc3545;
+$warning: #ffc107;
+$info: #0dcaf0;
+
+$light: #f8f9fa;
+$dark: #212529;
+
+$background: #f4f6f9;
+$text: #343a40;
+$border: #dee2e6;
+
+---------------------------------------------------------
+
+Sombras
+
+$shadow-sm: 0 .125rem .25rem rgba(0,0,0,.075);
+
+$shadow-md: 0 .5rem 1rem rgba(0,0,0,.15);
+
+$shadow-lg: 0 1rem 2rem rgba(0,0,0,.20);
+
+---------------------------------------------------------
+
+Bordes
+
+$radius-sm:6px;
+
+$radius-md:10px;
+
+$radius-lg:16px;
+
+---------------------------------------------------------
+
+Espaciados
+
+$space-xs:.25rem;
+
+$space-sm:.5rem;
+
+$space-md:1rem;
+
+$space-lg:2rem;
+
+---------------------------------------------------------
+
+Fuente
+
+$font-family:"Poppins",sans-serif;
+
+---------------------------------------------------------
+
+Layout
+
+$navbar-height:70px;
+
+$sidebar-width:270px;
+
+$content-max-width:1600px;
+
+---------------------------------------------------------
+
+Transiciones
+
+$transition:all .3s ease;
+
+=========================================================
+_mixins.scss
+=========================================================
+
+@mixin flex-center{
+
+display:flex;
+
+justify-content:center;
+
+align-items:center;
+
+}
+
+@mixin card{
+
+border-radius:16px;
+
+padding:20px;
+
+}
+
+=========================================================
+_utilities.scss
+=========================================================
+
+body{
+
+font-family:$font-family;
+
+background:$background;
+
+color:$text;
+
+min-height:100vh;
+
+overflow-x:hidden;
+
+margin:0;
+
+padding:0;
+
+-webkit-font-smoothing:antialiased;
+
+-moz-osx-font-smoothing:grayscale;
+
+}
+
+*,
+*::before,
+*::after{
+
+box-sizing:border-box;
+
+}
+
+.shadow-custom{
+
+box-shadow:$shadow-md;
+
+}
+
+.rounded-custom{
+
+border-radius:$radius-md;
+
+}
+
+.cursor-pointer{
+
+cursor:pointer;
+
+}
+
+.transition{
+
+transition:$transition;
+
+}
+
+.hover-scale{
+
+transition:$transition;
+
+}
+
+.hover-scale:hover{
+
+transform:scale(1.03);
+
+}
+
+=========================================================
+_buttons.scss
+=========================================================
+
+.btn-custom{
+
+border-radius:$radius-md;
+
+transition:$transition;
+
+font-weight:500;
+
+}
+
+.btn-custom:hover{
+
+transform:translateY(-2px);
+
+}
+
+.btn-primary-custom{
+
+background:$primary;
+
+color:white;
+
+}
+
+.btn-success-custom{
+
+background:$success;
+
+color:white;
+
+}
+
+.btn-danger-custom{
+
+background:$danger;
+
+color:white;
+
+}
+
+=========================================================
+_cards.scss
+=========================================================
+
+.card-custom{
+
+border:none;
+
+border-radius:$radius-lg;
+
+box-shadow:$shadow-sm;
+
+transition:$transition;
+
+}
+
+.card-custom:hover{
+
+box-shadow:$shadow-lg;
+
+transform:translateY(-4px);
+
+}
+
+=========================================================
+_forms.scss
+=========================================================
+
+.form-control{
+
+border-radius:$radius-sm;
+
+}
+
+.form-select{
+
+border-radius:$radius-sm;
+
+}
+
+.form-control:focus,
+.form-select:focus{
+
+box-shadow:none;
+
+border-color:$primary;
+
+}
+
+=========================================================
+_tables.scss
+=========================================================
+
+.table{
+
+vertical-align:middle;
+
+}
+
+.table thead{
+
+background:$primary;
+
+color:white;
+
+}
+
+=========================================================
+_navbar.scss
+=========================================================
+
+.navbar{
+
+box-shadow:$shadow-sm;
+
+height:$navbar-height;
+
+}
+
+=========================================================
+_sidebar.scss
+=========================================================
+
+.sidebar{
+
+background:$dark;
+
+width:$sidebar-width;
+
+min-height:100vh;
+
+color:white;
+
+}
+
+=========================================================
+_animations.scss
+=========================================================
+
+.fade-in{
+
+animation:fadeIn .4s ease;
+
+}
+
+@keyframes fadeIn{
+
+from{
+
+opacity:0;
+
+transform:translateY(10px);
+
+}
+
+to{
+
+opacity:1;
+
+transform:translateY(0);
+
+}
+
+}
+
+=========================================================
+_responsive.scss
+=========================================================
+
+@media(max-width:992px){
+
+.card-custom{
+
+margin-bottom:20px;
+
+}
+
+}
+
+=========================================================
+CONVENCIONES
+=========================================================
+
+✓ Usar Bootstrap antes que CSS personalizado.
+
+✓ No utilizar estilos inline.
+
+✓ Utilizar Grid Bootstrap.
+
+✓ Mobile First.
+
+✓ Todos los formularios deben utilizar form-control.
+
+✓ Todas las tablas deben utilizar table table-hover.
+
+✓ Todas las cards deben reutilizar card-custom.
+
+✓ Todos los botones deben utilizar btn + clases personalizadas.
+
+✓ Todos los componentes deben ser Standalone.
+
+✓ Toda lógica de negocio debe implementarse en Services.
+
+✓ Los modelos se ubican en models.
+
+✓ El consumo HTTP se realiza desde Services.
+
+✓ Los estilos globales se agregan únicamente en assets/styles.
+
+✓ Los componentes sólo deben contener estilos propios.
+
+=========================================================
+OBJETIVO
+=========================================================
+
+Generar un Front-End moderno, consistente y completamente reutilizable.
+
+Toda IA utilizada para generar vistas deberá respetar esta arquitectura y reutilizar los estilos aquí definidos, evitando crear nuevos estilos cuando ya exista una alternativa dentro del Design System.

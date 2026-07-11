@@ -1,0 +1,22 @@
+@use 'variables' as *;
+
+.form-control{
+
+    border-radius:$radius-sm;
+
+}
+
+.form-select{
+
+    border-radius:$radius-sm;
+
+}
+
+.form-control:focus,
+.form-select:focus{
+
+    box-shadow:none;
+
+    border-color:$primary;
+
+}

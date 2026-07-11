@@ -1,0 +1,142 @@
+<main class="fade-in">
+  
+  <section class="container py-5">
+    <div class="row">
+      <div class="col-12">
+        <h2 class="mb-4 fw-bold text-dark border-bottom pb-3">Tránsito en Vivo: Perico - San Salvador</h2>
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+          <div class="card-body p-1 bg-light">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m28!1m12!1m3!1d115668.61460599026!2d-65.2514114757105!3d-24.316886364023247!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!4m13!3e0!4m5!1s0x941b0f5b9d31189b%3A0xc68297bcf5f15d97!2sPerico%2C%20Jujuy!3m2!1d-24.3831415!2d-65.116527!4m5!1s0x941b0ce704040183%3A0xe54d5807dd311689!2sSan%20Salvador%20de%20Jujuy%2C%20Jujuy!3m2!1d-24.1857864!2d-65.2994767!5e0!3m2!1ses!2sar!4v1700000000000!5m2!1ses!2sar" 
+              width="100%" 
+              height="350" 
+              style="border:0; border-radius: 12px;" 
+              allowfullscreen="" 
+              loading="lazy" 
+              referrerpolicy="no-referrer-when-downgrade">
+            </iframe>
+          </div>
+          <div class="card-footer bg-white border-0 text-muted small py-3 px-4">
+            <i class="bi bi-info-circle-fill text-primary me-2"></i> 
+            El mapa se actualiza en tiempo real. Las líneas rojas indican demoras o tráfico lento.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="container pb-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">
+        <div class="max-width-md text-center text-md-start">
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold mb-2">BLOG Y NOVEDADES</span>
+            <h1 class="display-5 fw-bold text-dark mb-1">Guías de Viaje</h1>
+            <p class="text-muted lead mb-0">Enterate de las últimas noticias y aprendé los mejores consejos para conductores y pasajeros.</p>
+        </div>
+        
+        <div class="d-flex gap-2 mt-4 justify-content-center justify-content-md-end">
+            <button class="btn btn-outline-primary rounded-circle d-flex justify-content-center align-items-center shadow-sm transition hover-scale" style="width: 45px; height: 45px;" (click)="desplazar(-1)">
+            <i class="bi bi-chevron-left fs-5"></i>
+            </button>
+            <button class="btn btn-outline-primary rounded-circle d-flex justify-content-center align-items-center shadow-sm transition hover-scale" style="width: 45px; height: 45px;" (click)="desplazar(1)">
+            <i class="bi bi-chevron-right fs-5"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="d-flex gap-4 pb-4 px-2 carrusel-moderno" #carrusel>
+      
+      @for (post of articulos; track post.id) {
+        <div class="card border-0 shadow-sm overflow-hidden rounded-4 transition hover-scale flex-shrink-0" style="width: 320px;">
+          
+          <div class="bg-light p-4 text-center border-bottom position-relative d-flex align-items-center justify-content-center" style="height: 160px;">
+            <div class="position-absolute top-0 start-0 p-3">
+              <span class="badge bg-white text-dark shadow-sm border text-uppercase fs-8">{{ post.categoria }}</span>
+            </div>
+            <i class="bi {{ post.icono }} display-1 {{ post.colorIcono }} opacity-75"></i>
+          </div>
+
+          <div class="card-body p-4 d-flex flex-column" style="height: 250px;">
+            <span class="text-muted small fw-medium mb-2 d-block"><i class="bi bi-calendar3 me-1"></i> {{ post.fecha }}</span>
+            <h5 class="fw-bold text-dark mb-2" style="display: -webkit-box; line-clamp: 2; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+              {{ post.titulo }}
+            </h5>
+            <p class="text-muted small mb-4 flex-grow-1" style="display: -webkit-box; line-clamp: 3; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
+              {{ post.resumen }}
+            </p>
+            
+            <button class="btn btn-link text-primary p-0 text-start fw-bold mt-auto d-flex align-items-center gap-1 text-decoration-none">
+              Leer artículo <i class="bi bi-arrow-right small"></i>
+            </button>
+          </div>
+        </div>
+      }
+
+    </div>
+  </section>
+
+  <section class="py-5 bg-light border-top">
+    <div class="container fade-in" style="max-width: 800px;"> <div class="text-center mb-5">
+        <h2 class="fw-bold text-dark">Preguntas Frecuentes</h2>
+        <p class="text-muted">Resolvemos tus dudas más comunes al instante.</p>
+      </div>
+
+      <div class="accordion accordion-flush shadow-sm rounded-4 overflow-hidden border" id="accordionFaq">
+        
+        <div class="accordion-item border-0 border-bottom">
+          <h2 class="accordion-header">
+            <button class="accordion-button bg-white fw-bold text-dark py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+              ¿Cómo sé qué chofer me va a buscar?
+            </button>
+          </h2>
+          <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#accordionFaq">
+            <div class="accordion-body text-muted bg-white pb-4">
+              Una vez que el viaje es aceptado, la aplicación te mostrará el nombre del chofer, su calificación, la patente y el modelo del vehículo. Todos nuestros conductores pasan por un riguroso proceso de verificación.
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item border-0 border-bottom">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white fw-bold text-dark py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+              ¿Qué métodos de pago aceptan?
+            </button>
+          </h2>
+          <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#accordionFaq">
+            <div class="accordion-body text-muted bg-white pb-4">
+              Podés pagar en efectivo al finalizar el viaje, o usar medios digitales como transferencias y Mercado Pago directamente con el conductor. Muy pronto integraremos pagos con tarjeta directo desde la app.
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item border-0 border-bottom">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white fw-bold text-dark py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+              ¿Puedo enviar un paquete o solo transportan pasajeros?
+            </button>
+          </h2>
+          <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#accordionFaq">
+            <div class="accordion-body text-muted bg-white pb-4">
+              De momento solo transportamos pasajeros, pero estamos trabajando para ofrecer un servicio de envíos y paquetería en el futuro cercano. ¡Estén atentos a nuestras novedades!
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item border-0">
+          <h2 class="accordion-header">
+            <button class="accordion-button collapsed bg-white fw-bold text-dark py-4" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+              ¿Realizan viajes los días feriados?
+            </button>
+          </h2>
+          <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#accordionFaq">
+            <div class="accordion-body text-muted bg-white pb-4">
+              Sí, trabajamos todos los feriados, aunque la frecuencia de los vehículos puede ser ligeramente menor. Te recomendamos reservar con anticipación.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  
+</main>
+

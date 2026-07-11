@@ -1,0 +1,17 @@
+@mixin flex-center{
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+}
+
+@mixin card{
+
+    border-radius:16px;
+
+    padding:20px;
+
+}

@@ -1,0 +1,16 @@
+/* Estilos para el carrusel horizontal */
+.carrusel-moderno {
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  
+  scrollbar-width: none;
+  
+  .card {
+    scroll-snap-align: start; 
+  }
+}

@@ -1,0 +1,102 @@
+<main class="container my-5 fade-in d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="col-12 col-md-6 col-lg-5 col-xl-4">
+    
+    <div class="text-center mb-4">
+      <a routerLink="/" class="text-decoration-none d-inline-flex align-items-center gap-2 mb-3 hover-scale transition">
+        <i class="bi bi-geo-alt-fill fs-2 text-primary"></i>
+        <span class="fw-bold text-dark fs-4">Perico-Perico</span>
+      </a>
+      <h2 class="fw-bold text-dark">Bienvenido de nuevo</h2>
+      <p class="text-muted small">Ingresa tus credenciales para continuar</p>
+    </div>
+
+    <div class="card card-custom bg-white p-4 p-lg-5">
+      
+      <form [formGroup]="loginForm" (ngSubmit)="iniciarSesion()">
+        <div class="row g-4">
+          
+          <div class="col-12">
+            <label class="form-label fw-semibold text-dark small">Correo Electrónico</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+              <input type="email" class="form-control border-start-0 py-2 ps-0" placeholder="tu@email.com" formControlName="email">
+            </div>
+            @if (loginForm.get('email')?.invalid && loginForm.get('email')?.touched) {
+              <small class="text-danger mt-1 d-block fade-in"><i class="bi bi-x-circle me-1"></i>Ingresa un correo válido</small>
+            }
+          </div>
+
+          <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <label class="form-label fw-semibold text-dark small mb-0">Contraseña</label>
+              <a href="#" class="text-primary text-decoration-none small fw-medium hover-scale transition">¿Olvidaste tu contraseña?</a>
+            </div>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
+              <input type="password" class="form-control border-start-0 py-2 ps-0" placeholder="********" formControlName="password">
+            </div>
+            @if (loginForm.get('password')?.invalid && loginForm.get('password')?.touched) {
+              <small class="text-danger mt-1 d-block fade-in"><i class="bi bi-x-circle me-1"></i>La contraseña es obligatoria</small>
+            }
+          </div>
+
+          @if (mensajeError) {
+            <div class="col-12 fade-in">
+              <div class="alert alert-danger d-flex align-items-center mb-0 border-0 shadow-sm" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
+                <div class="small fw-medium">
+                  {{ mensajeError }}
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (mensajeExito) {
+            <div class="col-12 fade-in">
+              <div class="alert alert-success d-flex align-items-center mb-0 border-0 shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill fs-5 me-3"></i>
+                <div class="small fw-medium">
+                  {{ mensajeExito }}
+                </div>
+              </div>
+            </div>
+          }
+
+          <div class="col-12 mt-2">
+            <button type="submit" class="btn btn-custom btn-primary-custom w-100 py-3 fw-bold fs-6 shadow-sm hover-scale" [disabled]="cargando || loginForm.invalid || mensajeExito">
+              @if (cargando) {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Iniciando sesión...
+              } @else {
+                Ingresar <i class="bi bi-box-arrow-in-right ms-1"></i>
+              }
+            </button>
+          </div>
+
+          <div class="col-12 mt-4 fade-in">
+            <div class="d-flex align-items-center">
+              <hr class="flex-grow-1 text-muted">
+              <span class="mx-3 text-muted small fw-semibold">O ingresa con</span>
+              <hr class="flex-grow-1 text-muted">
+            </div>
+          </div>
+
+          <div class="col-12 mt-3 fade-in d-flex justify-content-center">
+            <div id="contenedorBotonGoogle"></div>
+          </div>
+
+        </div>
+      </form>
+    </div>
+
+    <div class="text-center mt-4 fade-in">
+      <p class="text-muted small">
+        ¿Aún no tienes cuenta? 
+        <br class="d-sm-none">
+        <a routerLink="/registro" [queryParams]="{ tipo: 'pasajero' }" class="text-primary fw-bold text-decoration-none me-2 hover-scale transition d-inline-block">Soy Pasajero</a> | 
+        <a routerLink="/registro" [queryParams]="{ tipo: 'chofer' }" class="text-primary fw-bold text-decoration-none ms-2 hover-scale transition d-inline-block">Soy Conductor</a>
+      </p>
+    </div>
+
+  </div>
+</main>

@@ -1,0 +1,174 @@
+<main class="container my-5 fade-in d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+  <div class="col-12 col-md-8 col-lg-6">
+    
+    <div class="text-center mb-4">
+      <a routerLink="/" class="text-decoration-none d-inline-flex align-items-center gap-2 mb-3 hover-scale transition">
+        <i class="bi bi-geo-alt-fill fs-3 text-primary"></i>
+        <span class="fw-bold text-dark fs-4">Perico-Perico</span>
+      </a>
+      <h2 class="fw-bold text-dark">Crear una cuenta</h2>
+      <p class="text-muted">Únete a la red de remises más grande de la ciudad</p>
+    </div>
+
+    <div class="card card-custom bg-white p-4 p-lg-5">
+      
+      <ul class="nav nav-pills nav-fill mb-4 gap-2">
+        <li class="nav-item">
+          <button type="button" class="nav-link fw-bold rounded-custom transition" 
+                  [class.active]="rolSeleccionado === 'PASAJERO'"
+                  (click)="cambiarRol('PASAJERO')">
+            <i class="bi bi-person-fill me-2"></i>Pasajero
+          </button>
+        </li>
+        <li class="nav-item">
+          <button type="button" class="nav-link fw-bold rounded-custom transition" 
+                  [class.active]="rolSeleccionado === 'CHOFER'"
+                  (click)="cambiarRol('CHOFER')">
+            <i class="bi bi-car-front-fill me-2"></i>Conductor
+          </button>
+        </li>
+      </ul>
+
+      <form [formGroup]="registroForm" (ngSubmit)="registrarUsuario()">
+        <div class="row g-3">
+          
+          <div class="col-md-6">
+            <label class="form-label fw-semibold text-dark small">Nombre</label>
+            <input type="text" class="form-control py-2" placeholder="Ej: Juan" formControlName="nombre">
+          </div>
+          
+          <div class="col-md-6">
+            <label class="form-label fw-semibold text-dark small">Apellido</label>
+            <input type="text" class="form-control py-2" placeholder="Ej: Pérez" formControlName="apellido">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Correo electrónico</label>
+            <input class="form-control" type="email" formControlName="email">
+          
+            @if (registroForm.get('email')?.touched && registroForm.get('email')?.invalid) {
+              <div class="form-text text-danger mt-1">
+                @if (registroForm.get('email')?.hasError('required')) {
+                  <i class="bi bi-exclamation-circle"></i> El correo es obligatorio.
+                }
+                @if (registroForm.get('email')?.hasError('pattern')) {
+                  <i class="bi bi-exclamation-circle"></i> Ingrese un correo válido (ej: usuario@gmail.com).
+                }
+              </div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label text-muted small fw-bold">TELÉFONO DE CONTACTO</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0"><i class="bi bi-telephone text-muted"></i></span>
+              <input type="tel" class="form-control border-start-0 ps-0" formControlName="telefono" placeholder="Ej: 3884123456">
+            </div>
+            
+            @if (registroForm.get('telefono')?.touched && registroForm.get('telefono')?.invalid) {
+              <div class="form-text text-danger mt-1 small">
+                @if (registroForm.get('telefono')?.hasError('required')) {
+                  <i class="bi bi-exclamation-circle"></i> El teléfono es obligatorio.
+                }
+                @if (registroForm.get('telefono')?.hasError('pattern')) {
+                  <i class="bi bi-exclamation-circle"></i> Ingrese un número válido de 10 dígitos (con código de área, sin 0 ni 15).
+                }
+              </div>
+            }
+          </div>
+
+          <div class="col-12 col-md-6">
+            <label class="form-label text-muted small fw-bold">CONTRASEÑA</label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0">
+                <i class="bi bi-lock text-muted"></i>
+              </span>
+              <input [type]="showPassword ? 'text' : 'password'" 
+                    class="form-control border-start-0 ps-0" 
+                    formControlName="passwordHash" 
+                    placeholder="Cree una clave segura">
+              <button type="button" 
+                      class="btn btn-outline-secondary border-start-0" 
+                      (click)="togglePassword()">
+                <i class="bi" [ngClass]="showPassword ? 'bi-eye-slash' : 'bi-eye'"></i>
+              </button>
+            </div>
+            @if (registroForm.get('passwordHash')?.touched && registroForm.get('passwordHash')?.invalid) {
+              <div class="form-text text-danger mt-1 small">
+                @if (registroForm.get('passwordHash')?.hasError('required')) {
+                  <i class="bi bi-exclamation-circle"></i> La contraseña es obligatoria.
+                }
+                @if (registroForm.get('passwordHash')?.hasError('pattern')) {
+                  <div class="d-flex flex-column gap-1 mt-1 fs-7">
+                    <span class="text-danger"><i class="bi bi-x-circle"></i> Debe cumplir con los requisitos de seguridad:</span>
+                    <span class="ms-3 text-secondary">• Al menos 8 caracteres de longitud.</span>
+                    <span class="ms-3 text-secondary">• Al menos una letra mayúscula.</span>
+                    <span class="ms-3 text-secondary">• Al menos una letra minúscula.</span>
+                    <span class="ms-3 text-secondary">• Al menos un número digitado.</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+
+          @if (rolSeleccionado === 'CHOFER') {
+            <div class="col-12 pt-3 mt-1 border-top fade-in">
+              <div class="row g-3">
+                <div class="col-12">
+                  <span class="badge bg-warning text-dark mb-2"><i class="bi bi-info-circle me-1"></i> Requisitos de Conductor</span>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-dark small">N° Licencia de Conducir</label>
+                  <input type="text" class="form-control py-2" placeholder="Número de carnet" formControlName="licenciaConducir">
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label fw-semibold text-dark small">Fecha de Habilitación</label>
+                  <input type="date" class="form-control py-2" formControlName="fechaHabilitacion">
+                </div>
+              </div>
+            </div>
+          }
+          @if (mensajeError) {
+              <div class="col-12 mt-3 fade-in">
+                <div class="alert alert-danger d-flex align-items-center mb-0 border-0 shadow-sm" role="alert">
+                  <i class="bi bi-exclamation-triangle-fill fs-5 me-3"></i>
+                  <div>
+                    <strong>¡Atención!</strong> {{ mensajeError }}
+                  </div>
+                </div>
+              </div>
+            }
+          @if (mensajeExito) {
+            <div class="col-12 mt-3 fade-in">
+              <div class="alert alert-success d-flex align-items-center mb-0 border-0 shadow-sm" role="alert">
+                <i class="bi bi-check-circle-fill fs-5 me-3"></i>
+                <div>
+                  <strong>¡Excelente!</strong> {{ mensajeExito }}
+                </div>
+              </div>
+            </div>
+          }
+
+          <div class="col-12 mt-4">
+            <button type="submit" class="btn btn-custom btn-primary-custom w-100 py-3 fw-bold fs-6 shadow-sm hover-scale" [disabled]="cargando || registroForm.invalid">
+              @if (cargando) {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Procesando...
+              } @else {
+                Registrarme como {{ rolSeleccionado === 'CHOFER' ? 'Conductor' : 'Pasajero' }}
+              }
+            </button>
+          </div>
+
+          <div class="col-12 text-center mt-3">
+            <p class="text-muted small">¿Ya tienes una cuenta? <a routerLink="/login" class="text-primary fw-bold text-decoration-none">Inicia sesión aquí</a></p>
+          </div>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</main>

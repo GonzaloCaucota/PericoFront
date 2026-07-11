@@ -1,0 +1,84 @@
+<header class="navbar navbar-expand-lg bg-white px-4 shadow-custom sticky-top fade-in">
+  <div class="container-fluid">
+    
+    <a class="navbar-brand d-flex align-items-center gap-2 fw-bold text-primary hover-scale transition" [routerLink]="rutaDinamica" style="cursor: pointer;">
+      <i class="bi bi-geo-alt-fill fs-3"></i>
+      <span>Perico-Perico</span>
+    </a>
+
+    <button class="navbar-toggler border-0 shadow-none" 
+            type="button" 
+            (click)="toggleMenuMovil()" 
+            [attr.aria-expanded]="menuMovilAbierto">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" [class.show]="menuMovilAbierto">
+      
+     <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-4 fw-semibold text-center mt-3 mt-lg-0">
+        
+        <li class="nav-item">
+          <a class="nav-link text-dark transition hover-scale" 
+             [routerLink]="rutaDinamica" 
+             routerLinkActive="active" 
+             (click)="menuMovilAbierto = false">
+             {{ textoInicio }}
+          </a>
+        </li>
+  
+        <li class="nav-item">
+          <a class="nav-link text-muted transition hover-scale" routerLink="/nosotros" routerLinkActive="active" (click)="menuMovilAbierto = false">Nosotros</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link text-muted transition hover-scale" routerLink="/blogs" routerLinkActive="active" (click)="menuMovilAbierto = false">Blogs</a>
+        </li>
+      </ul>
+
+      <div class="d-flex justify-content-center align-items-center gap-3 mt-3 mt-lg-0">
+        
+        <div class="dropdown">
+          <button class="btn btn-link text-secondary transition hover-scale d-flex align-items-center text-decoration-none p-0 border-0" 
+                  (click)="toggleMenu()"
+                  [attr.aria-expanded]="menuAbierto">
+            <i class="bi bi-gear fs-4 text-muted"></i>
+          </button>
+          
+          <ul class="dropdown-menu dropdown-menu-end shadow-custom border-0 mt-3 rounded-3 fade-in"
+              [class.show]="menuAbierto">
+            
+            @if (loginService.estaLogueadoSignal()) {
+              <li>
+                <a class="dropdown-item fw-bold py-2 d-flex align-items-center gap-2" routerLink="/perfil" (click)="menuAbierto = false; menuMovilAbierto = false">
+                  <i class="bi bi-person-vcard text-primary fs-5"></i> Mi perfil
+                </a>
+              </li>
+              <li><hr class="dropdown-divider opacity-25"></li>
+              <li>
+                <a class="dropdown-item text-danger fw-medium py-2 d-flex align-items-center gap-2" style="cursor: pointer;" (click)="cerrarSesion(); menuAbierto = false; menuMovilAbierto = false">
+                  <i class="bi bi-box-arrow-right fs-5"></i> Cerrar sesión
+                </a>
+              </li>
+            } @else {
+              <li>
+                <span class="dropdown-item-text text-muted small px-3">Inicia sesión para ver opciones</span>
+              </li>
+            }
+          </ul>
+        </div>
+
+        @if (loginService.estaLogueadoSignal()) {
+          <span class="text-dark fw-semibold small d-none d-sm-block">
+            Bienvenido, {{ loginService.usuarioSesionSignal()?.nombre | titlecase }}
+          </span>
+        } @else {
+          <button class="btn btn-custom btn-primary-custom px-4 rounded-pill shadow-sm d-flex align-items-center gap-2 transition hover-scale fade-in" 
+                  [routerLink]="['/login']" 
+                  (click)="menuMovilAbierto = false">
+            <i class="bi bi-person-circle"></i> Iniciar sesión
+          </button>
+        }
+      </div>
+      
+    </div>
+  </div>
+</header>

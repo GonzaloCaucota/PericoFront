@@ -1,0 +1,15 @@
+/* Efecto hover suave con blanco transparente para fondos celestes/primarios */
+.hover-light:hover {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+
+aside button {
+  border: none;
+  font-size: 0.95rem;
+}
+
+/* Para que el botón activo resalte mejor */
+aside .bg-white.text-primary {
+  transform: translateX(4px); /* Pequeño empujoncito a la derecha para destacar que está seleccionado */
+}

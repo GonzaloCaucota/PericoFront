@@ -1,0 +1,242 @@
+<main class="container-fluid my-5 px-3 px-lg-5 fade-in">
+  
+  <div class="row justify-content-center mb-5">
+    <div class="col-12 col-md-8 text-center">
+      <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 fw-bold mb-3 tracking-wide small shadow-sm">CONECTANDO LA CIUDAD</span>
+      <h1 class="fw-bolder text-dark mb-3 display-4">Viajá seguro, viajá con <span class="text-primary">Perico-Perico</span></h1>
+      <p class="text-muted fs-5 lh-lg px-lg-5">Tu alternativa rápida y confiable para moverte desde tu ciudad a otra. Reserva tu viaje en segundos.</p>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+    
+    <div class="col-md-6">
+      <div class="card card-custom h-100 p-4 p-lg-5 bg-white border-0 position-relative overflow-hidden">
+
+        <div class="position-absolute top-0 end-0 p-4 opacity-25" style="transform: translate(20px, -20px);">
+          <i class="bi bi-person-fill display-1 text-primary"></i>
+        </div>
+        
+        <div class="position-relative z-1">
+          <div class="bg-primary bg-opacity-10 text-primary rounded-custom d-inline-flex align-items-center justify-content-center p-3 mb-4 shadow-sm">
+            <i class="bi bi-shield-check fs-2"></i>
+          </div>
+          <h3 class="fw-bold mb-3 text-dark">Para Pasajeros</h3>
+          <p class="text-muted mb-4 fs-6 lh-lg">Viaja con total tranquilidad. Conductores verificados, vehículos en excelente estado y seguimiento en tiempo real de tu ruta.</p>
+          
+          <div class="d-flex flex-column gap-3 mb-5">
+            <div class="d-flex align-items-center text-secondary fw-medium">
+              <i class="bi bi-check2-circle text-primary fs-5 me-3"></i> Facturación corporativa
+            </div>
+            <div class="d-flex align-items-center text-secondary fw-medium">
+              <i class="bi bi-check2-circle text-primary fs-5 me-3"></i> Soporte 24/7 en Perico
+            </div>
+          </div>
+
+          <div class="mt-auto">
+            <button class="btn btn-custom btn-outline-primary w-100 py-3 fw-bold hover-scale d-flex justify-content-center align-items-center gap-2" [routerLink]="['/registro']" [queryParams]="{ tipo: 'pasajero' }">
+              Registrarme<i class="bi bi-arrow-right"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card card-custom h-100 p-4 p-lg-5 bg-primary text-white border-0 position-relative overflow-hidden">
+        <div class="position-absolute top-0 end-0 p-4 opacity-25" style="transform: translate(20px, -20px);">
+          <i class="bi bi-car-front-fill display-1 text-white"></i>
+        </div>
+        
+        <div class="position-relative z-1">
+          <div class="d-flex justify-content-between align-items-start mb-4">
+            <div class="bg-white bg-opacity-25 rounded-custom d-inline-flex align-items-center justify-content-center p-3 shadow-sm">
+              <i class="bi bi-wallet2 fs-2 text-white"></i>
+            </div>
+            <span class="badge bg-warning text-dark px-3 py-2 rounded-custom fw-bold shadow-sm d-flex align-items-center gap-1">
+              <i class="bi bi-star-fill"></i> OPORTUNIDAD
+            </span>
+          </div>
+          <h3 class="fw-bold mb-3 text-white">Únete como Conductor</h3>
+          <p class="mb-4 text-white text-opacity-75 fs-6 lh-lg">Maximiza tus ingresos con nuestra red local. Acceso a viajes de alto valor, herramientas de gestión y pagos garantizados.</p>
+          
+          <div class="d-flex flex-column gap-3 mb-5">
+            <div class="d-flex align-items-center text-white text-opacity-75 fw-medium">
+              <i class="bi bi-check2-circle text-warning fs-5 me-3"></i> Pagos semanales puntuales
+            </div>
+            <div class="d-flex align-items-center text-white text-opacity-75 fw-medium">
+              <i class="bi bi-check2-circle text-warning fs-5 me-3"></i> Horarios 100% flexibles
+            </div>
+          </div>
+
+          <div class="mt-auto d-flex flex-column flex-xl-row gap-3">
+            <button [routerLink]="['/registro']" [queryParams]="{ tipo: 'chofer' }" class="btn btn-custom btn-light text-primary w-100 py-3 fw-bold shadow-custom hover-scale d-flex justify-content-center align-items-center gap-2">
+              Registrarme<i class="bi bi-arrow-right"></i>
+            </button>
+            <button class="btn btn-custom btn-outline-light w-100 py-3 fw-bold hover-scale" 
+                    data-bs-toggle="modal" 
+                    data-bs-target="#requisitosModal">
+              Ver requisitos
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <section class="card-custom bg-white p-4 p-lg-5 mb-5 border-0">
+    <div class="row align-items-center g-5">
+      
+      <div class="col-lg-6 pe-lg-4">
+        <h2 class="fw-bold text-dark mb-4 display-6">Tu viaje al instante</h2>
+        
+        <ul class="list-unstyled mb-5 d-flex flex-column gap-4">
+          <li class="d-flex align-items-start gap-3">
+            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-flex align-items-center justify-content-center">
+              <i class="bi bi-geo-fill fs-5"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-1 text-dark">Ubicación precisa</h5>
+              <p class="text-muted mb-0">Encuentra el punto de partida exacto en el mapa interactivo.</p>
+            </div>
+          </li>
+          <li class="d-flex align-items-start gap-3">
+            <div class="bg-success bg-opacity-10 text-success rounded-circle p-3 d-flex align-items-center justify-content-center">
+              <i class="bi bi-clock-fill fs-5"></i>
+            </div>
+            <div>
+              <h5 class="fw-bold mb-1 text-dark">Cero demoras</h5>
+              <p class="text-muted mb-0">Verifica si hay disponibilidad de conductores para viajar.</p>
+            </div>
+          </li>
+        </ul>
+
+        <button class="btn btn-custom btn-primary-custom px-5 py-3 fw-bold fs-6 shadow-sm d-inline-flex align-items-center gap-2 hover-scale">
+          <i class="bi bi-car-front-fill"></i> Reservar un Viaje
+        </button>
+      </div>
+      
+      <div class="col-lg-6">
+        <div class="rounded-custom shadow-custom overflow-hidden position-relative border border-5 border-white ratio ratio-4x3 bg-light">
+          <iframe 
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d28935.169475335588!2d-65.1378144!3d-24.3828956!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x941b089c89280d99%3A0xc3f8e5c1e34f6!2sPerico%2C%20Jujuy!5e0!3m2!1ses!2sar!4v1700000000000!5m2!1ses!2sar" 
+            class="border-0 w-100 h-100" 
+            allowfullscreen="" 
+            loading="lazy" 
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="modal fade" id="requisitosModal" tabindex="-1" aria-labelledby="requisitosModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+    <div class="modal-content rounded-custom border-0 shadow-lg">
+      
+      <div class="modal-header border-0 pb-0 mt-2">
+        <h4 class="modal-title fw-bold text-dark d-flex align-items-center gap-2" id="requisitosModalLabel">
+          <i class="bi bi-ui-checks text-primary fs-3"></i> Requisitos para ser Conductor
+        </h4>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body px-4 py-4">
+        <p class="text-muted mb-4">
+          Para formar parte de <strong>Perico-Perico</strong>, requerimos que todos nuestros conductores cumplan con las siguientes condiciones y normativas vigentes:
+        </p>
+
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-person-badge text-primary me-2"></i>Requisitos Personales</h5>
+        <ul class="list-group list-group-flush mb-4">
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Edad y Experiencia:</strong>
+              <p class="text-muted small mb-0">Tener 21 años o más y contar con al menos 1 año de experiencia conduciendo.</p>
+            </div>
+          </li>
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Licencia de Conducir:</strong>
+              <p class="text-muted small mb-0">Licencia Nacional de Conducir vigente (Clase D1 o superior para transporte de pasajeros).</p>
+            </div>
+          </li>
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Certificado de Antecedentes:</strong>
+              <p class="text-muted small mb-0">Certificado de Antecedentes Penales reciente emitido por el Registro Nacional de Reincidencia.</p>
+            </div>
+          </li>
+        </ul>
+
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-car-front-fill text-primary me-2"></i>Requisitos del Vehículo</h5>
+        <ul class="list-group list-group-flush mb-4">
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Características del Auto:</strong>
+              <p class="text-muted small mb-0">Vehículo modelo 2010 en adelante, 4 o 5 puertas, y en perfecto estado.</p>
+            </div>
+          </li>
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Documentación y VTV/RTO:</strong>
+              <p class="text-muted small mb-0">Cédula del vehículo (Verde o Azul) y oblea de Revisión Técnica Obligatoria (RTO/VTV) al día.</p>
+            </div>
+          </li>
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Seguro Automotor:</strong>
+              <p class="text-muted small mb-0">Póliza vigente con cobertura específica para pasajeros transportados o uso comercial/remis.</p>
+            </div>
+          </li>
+        </ul>
+
+        <h5 class="fw-bold text-dark mb-3"><i class="bi bi-phone-fill text-primary me-2"></i>Registro y Herramientas</h5>
+        <ul class="list-group list-group-flush mb-2">
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Situación Fiscal (AFIP):</strong>
+              <p class="text-muted small mb-0">Constancia de inscripción en Monotributo (CUIT) para facturación de servicios.</p>
+            </div>
+          </li>
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Cuenta Bancaria:</strong>
+              <p class="text-muted small mb-0">CBU bancario o CVU de billetera virtual a tu nombre para recibir las liquidaciones de viajes.</p>
+            </div>
+          </li>
+          <li class="list-group-item border-0 px-0 py-2 d-flex align-items-start gap-3">
+            <i class="bi bi-check-circle-fill text-success mt-1"></i>
+            <div>
+              <strong class="text-dark">Smartphone:</strong>
+              <p class="text-muted small mb-0">Teléfono móvil con GPS, datos móviles activos y capacidad para ejecutar la app del conductor.</p>
+            </div>
+          </li>
+        </ul>
+
+      </div>
+
+      <div class="modal-footer border-0 pt-0 px-4 pb-4">
+        <button type="button" class="btn btn-light px-4 fw-semibold rounded-pill" data-bs-dismiss="modal">
+          Volver
+        </button>
+        
+        <button class="btn btn-custom btn-primary-custom px-4 fw-bold rounded-pill shadow-sm" 
+                [routerLink]="['/registro']" 
+                [queryParams]="{ tipo: 'chofer' }"
+                data-bs-dismiss="modal">
+          Cumplo con todo, Registrarme <i class="bi bi-arrow-right ms-1"></i>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

@@ -1,0 +1,206 @@
+<section class="container-fluid my-4 px-3 px-lg-5">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+    <div>
+      <h2 class="mb-1">Dashboard Administrativo</h2>
+      <p class="text-muted mb-0">Métricas generales de Perico-Perico</p>
+    </div>
+
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary" type="button" (click)="cargarDashboard()" [disabled]="cargando">
+        Actualizar
+      </button>
+      <button class="btn btn-outline-secondary" type="button" (click)="exportarPDF()" [disabled]="!dashboard">
+        Exportar PDF
+      </button>
+      <button class="btn btn-success" type="button" (click)="exportarExcel()" [disabled]="!dashboard">
+        Exportar Excel
+      </button>
+    </div>
+  </div>
+
+  @if (cargando) {
+    <div class="alert alert-info">Cargando dashboard...</div>
+  }
+
+  @if (error) {
+    <div class="alert alert-danger">{{ error }}</div>
+  }
+
+  @if (dashboard) {
+    <div class="row g-3 mb-4">
+      @for (tarjeta of tarjetasResumen; track tarjeta.titulo) {
+        <div class="col-12 col-sm-6 col-xl-2">
+          <div class="card summary-card text-white h-100" [ngClass]="tarjeta.clase">
+            <div class="card-body">
+              <p class="mb-1">{{ tarjeta.titulo }}</p>
+              <h3 class="mb-0">{{ tarjeta.valor }}</h3>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5>Viajes por estado</h5>
+            <div class="chart-box">
+              <canvas
+                baseChart
+                [data]="viajesPorEstadoData"
+                [options]="barChartOptions"
+                [type]="barChartType">
+              </canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5>Reservas por estado</h5>
+            <div class="chart-box">
+              <canvas
+                baseChart
+                [data]="reservasPorEstadoData"
+                [options]="pieChartOptions"
+                [type]="pieChartType">
+              </canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5>Reservas por fecha</h5>
+            <div class="chart-box">
+              <canvas
+                baseChart
+                [data]="reservasPorFechaData"
+                [options]="lineChartOptions"
+                [type]="lineChartType">
+              </canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+      <div class="col-12 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5>Choferes por estado</h5>
+            @for (item of dashboard.choferesPorEstado; track item.estado) {
+              <span class="badge text-bg-primary me-2 mb-2">{{ item.estado }}: {{ item.cantidad }}</span>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5>Pasajeros por estado</h5>
+            @for (item of dashboard.pasajerosPorEstado; track item.estado) {
+              <span class="badge text-bg-success me-2 mb-2">{{ item.estado }}: {{ item.cantidad }}</span>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card h-100">
+          <div class="card-body">
+            <h5>Autos por estado</h5>
+            @for (item of dashboard.autosPorEstado; track item.estado) {
+              <span class="badge text-bg-warning me-2 mb-2">{{ item.estado }}: {{ item.cantidad }}</span>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+          <h5 class="mb-0">Últimas reservas</h5>
+          <input
+            class="form-control table-filter"
+            type="search"
+            placeholder="Buscar..."
+            [(ngModel)]="filtro"
+            (ngModelChange)="cambiarPagina(1)"
+          >
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-striped align-middle">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Pasajero</th>
+                <th>Chofer</th>
+                <th>Origen</th>
+                <th>Destino</th>
+                <th>Fecha</th>
+                <th>Reserva</th>
+                <th>Pago</th>
+                <th>Importe</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (reserva of reservasPaginadas; track reserva.idReserva) {
+                <tr>
+                  <td class="fw-bold text-secondary">#{{ reserva.idReserva }}</td>
+                  
+                  <td>{{ nombrePasajero(reserva) | titlecase }}</td>
+                  <td>{{ nombreChofer(reserva) | titlecase }}</td>
+                  
+                  <td>{{ reserva.viaje?.origen || '-' }}</td>
+                  <td>{{ reserva.viaje?.destino || '-' }}</td>
+                  
+                  <td>{{ reserva.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                  
+                  <td>
+                    <span class="badge bg-light text-dark border">
+                      {{ reserva.estadoReserva | titlecase }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark border">
+                      {{ reserva.estadoPago | titlecase }}
+                    </span>
+                  </td>
+                  
+                  <td class="fw-semibold text-success">
+                    {{ reserva.importeTotal | currency:'ARS':'symbol-narrow':'1.0-0' }}
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="9" class="text-center text-muted py-4">
+                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                    No hay reservas para mostrar.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-end align-items-center gap-2 mt-3">
+          <button class="btn btn-outline-secondary btn-sm" type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
+            Anterior
+          </button>
+          <span class="small">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+          <button class="btn btn-outline-secondary btn-sm" type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas">
+            Siguiente
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>
