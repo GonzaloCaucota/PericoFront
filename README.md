@@ -1,59 +1,57 @@
-# Proyfrontendgrupo03
+# Taxi Compartido — Perico
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.0.4.
+Aplicación de viajes compartidos con Angular, API Express/Socket.IO y PostgreSQL. Las reservas y los cobros operan en efectivo.
 
-## Development server
+Este repositorio reúne el proyecto completo en la rama `WebDeploy`:
 
-To start a local development server, run:
+- `PericoFront/`: frontend Angular y configuración pública de la API.
+- `PericoBack/`: API, modelos Sequelize, migraciones y pruebas.
+- `compose.yaml`: PostgreSQL local, pgAdmin y base descartable de integración.
+- `render.yaml`: servicios de backend y frontend para Render, con PostgreSQL en Supabase.
 
-```bash
-ng serve
-```
+## Desarrollo local
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+Requiere Docker Compose y Node de `.nvmrc`.
 
 ```bash
-ng generate component component-name
+nvm use
+docker compose up -d --wait postgres pgadmin
+cd PericoBack
+cp -n .env.local.example .env.local
+npm ci
+npm run db:migrate:local
+npm run dev:local
 ```
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+En otra terminal, desde la raíz:
 
 ```bash
-ng generate --help
+nvm use
+cd PericoFront
+npm ci
+npm start
 ```
 
-## Building
+- Aplicación: http://localhost:4200
+- Salud de la API: http://localhost:3000/health
+- Documentación API: http://localhost:3000/api/docs
+- pgAdmin: http://localhost:5050
 
-To build the project run:
+Las credenciales de Compose son exclusivamente de desarrollo. No se incluyen credenciales reales ni archivos `.env`. Las migraciones crean el esquema privado `taxi`; no se ejecuta sincronización automática de tablas al iniciar.
+
+Consultar [pruebas locales y pgAdmin](PRUEBAS_LOCALES.md), [despliegue en Supabase y Render](DEPLOY_SUPABASE_RENDER.md) y [revisión de salud](SALUD_PROYECTO.md).
+
+## Pruebas
 
 ```bash
-ng build
+npm --prefix PericoBack test
+npm --prefix PericoFront test -- --watch=false
+docker compose --profile test up -d --wait postgres-test
+npm --prefix PericoBack run test:db:local
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+La prueba PostgreSQL utiliza una base aislada y crea datos de prueba en ella. Para detener el entorno conservando el volumen de desarrollo:
 
 ```bash
-ng test
+docker compose --profile test down
 ```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.

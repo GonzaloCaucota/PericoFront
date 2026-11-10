@@ -1,0 +1,48 @@
+{
+  "name": "pericoback",
+  "version": "1.0.0",
+  "description": "backend de la web",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test",
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "db:migrate": "node db/migrate.js",
+    "db:create-admin": "node scripts/create-admin.js",
+    "test:db": "node scripts/check-database.js",
+    "dev:local": "node --env-file=.env.local --watch index.js",
+    "db:migrate:local": "node --env-file=.env.local db/migrate.js",
+    "db:create-admin:local": "node --env-file=.env.local scripts/create-admin.js",
+    "test:db:local": "node --env-file=.env.local scripts/check-database.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GonzaloAPU/TpFinalWebPericoPerico.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/GonzaloAPU/TpFinalWebPericoPerico/issues"
+  },
+  "homepage": "https://github.com/GonzaloAPU/TpFinalWebPericoPerico#readme",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.9.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.22.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.7",
+    "socket.io": "^4.8.3",
+    "swagger-autogen": "^2.23.7",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "engines": {
+    "node": ">=22.22.3 <23"
+  }
+}

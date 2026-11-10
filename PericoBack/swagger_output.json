@@ -1,0 +1,2337 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "API PericoBack",
+    "description": "Documentación de la API REST para la gestión de viajes, choferes, pasajeros, autos y reservas.",
+    "version": "1.0.0"
+  },
+  "host": "localhost:3000",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "Usuarios",
+      "description": "Login y listado general de usuarios."
+    },
+    {
+      "name": "Admins",
+      "description": "Gestión de administradores y dashboard."
+    },
+    {
+      "name": "Pasajeros",
+      "description": "Gestión de pasajeros."
+    },
+    {
+      "name": "Choferes",
+      "description": "Gestión de choferes."
+    },
+    {
+      "name": "Autos",
+      "description": "Gestión de la flota de autos."
+    },
+    {
+      "name": "Turnos",
+      "description": "Asignación de turnos chofer-auto."
+    },
+    {
+      "name": "Viajes",
+      "description": "Gestión de viajes."
+    },
+    {
+      "name": "Reservas",
+      "description": "Gestión de reservas y pagos en efectivo."
+    }
+  ],
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "securityDefinitions": {
+    "bearerAuth": {
+      "type": "apiKey",
+      "name": "Authorization",
+      "in": "header",
+      "description": "Ingresar como: Bearer {token}"
+    }
+  },
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/admins/dashboard": {
+      "get": {
+        "tags": [
+          "Admins"
+        ],
+        "summary": "Dashboard de métricas",
+        "description": "Totales y estadísticas del sistema (usuarios, viajes, reservas, etc). Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Dashboard obtenido correctamente."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Error al obtener los datos del dashboard."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admins/": {
+      "get": {
+        "tags": [
+          "Admins"
+        ],
+        "summary": "Obtener todos los admins",
+        "description": "Retorna los admins junto con los datos del usuario relacionado. Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de admins.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Admin"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Admins"
+        ],
+        "summary": "Registrar un admin",
+        "description": "Crea un Usuario con rol ADMIN y su perfil Admin asociado. Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Usuario"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Admin registrado correctamente."
+          },
+          "400": {
+            "description": "No se pudo registrar el admin."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pasajeros/": {
+      "get": {
+        "tags": [
+          "Pasajeros"
+        ],
+        "summary": "Obtener todos los pasajeros",
+        "description": "Retorna los pasajeros junto con los datos del usuario relacionado. Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de pasajeros.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Pasajero"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Pasajeros"
+        ],
+        "summary": "Registrar un pasajero",
+        "description": "Crea un Usuario con rol PASAJERO y su perfil Pasajero asociado. Ruta pública (registro).",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Usuario"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Pasajero registrado correctamente."
+          },
+          "400": {
+            "description": "No se pudo registrar el pasajero."
+          }
+        }
+      }
+    },
+    "/api/pasajeros/{idPasajero}/historial": {
+      "get": {
+        "tags": [
+          "Pasajeros"
+        ],
+        "summary": "Historial de reservas del pasajero",
+        "description": "",
+        "parameters": [
+          {
+            "name": "idPasajero",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del pasajero."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Historial de reservas con su viaje asociado.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Reserva"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Pasajero no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pasajeros/{idPasajero}/ubicacion": {
+      "patch": {
+        "tags": [
+          "Pasajeros"
+        ],
+        "summary": "Actualizar ubicación del pasajero",
+        "description": "",
+        "parameters": [
+          {
+            "name": "idPasajero",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del pasajero."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "latitud": {
+                  "type": "number",
+                  "example": -24.1858
+                },
+                "longitud": {
+                  "type": "number",
+                  "example": -65.2995
+                },
+                "precision": {
+                  "type": "number",
+                  "example": 15.5
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ubicación actualizada."
+          },
+          "400": {
+            "description": "Latitud/longitud/precision no válida."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Pasajero no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pasajeros/{idPasajero}": {
+      "get": {
+        "tags": [
+          "Pasajeros"
+        ],
+        "summary": "Obtener un pasajero por ID",
+        "description": "Trae el perfil del pasajero, su usuario y sus reservas con el viaje asociado.",
+        "parameters": [
+          {
+            "name": "idPasajero",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del pasajero."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pasajero encontrado.",
+            "schema": {
+              "$ref": "#/definitions/Pasajero"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Pasajero no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Pasajeros"
+        ],
+        "summary": "Actualizar pasajero",
+        "description": "Actualiza los datos de Usuario y del perfil Pasajero. Solo se modifican los campos enviados.",
+        "parameters": [
+          {
+            "name": "idPasajero",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del pasajero."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Pasajero"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pasajero actualizado correctamente."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Pasajero no encontrado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/choferes/": {
+      "get": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Obtener todos los choferes",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de choferes.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Chofer"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Registrar un chofer",
+        "description": "Crea un Usuario con rol CHOFER y su perfil Chofer asociado. Ruta pública (registro).",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Usuario"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Chofer registrado correctamente."
+          },
+          "400": {
+            "description": "No se pudo registrar el chofer."
+          }
+        }
+      }
+    },
+    "/api/choferes/{idChofer}": {
+      "get": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Obtener un chofer por ID",
+        "description": "",
+        "parameters": [
+          {
+            "name": "idChofer",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del chofer."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chofer encontrado.",
+            "schema": {
+              "$ref": "#/definitions/Chofer"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Chofer no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Actualizar chofer",
+        "description": "Actualiza los datos de Usuario y del perfil Chofer. Solo se modifican los campos enviados.",
+        "parameters": [
+          {
+            "name": "idChofer",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del chofer."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Chofer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Chofer actualizado correctamente."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Chofer no encontrado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/choferes/{idChofer}/estado": {
+      "patch": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Cambiar estado del chofer",
+        "description": "Estados válidos: DISPONIBLE, EN_VIAJE, DESCANSO, SUSPENDIDO, INACTIVO, ELIMINADO.",
+        "parameters": [
+          {
+            "name": "idChofer",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del chofer."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "estadoChofer": {
+                  "type": "string",
+                  "example": "DISPONIBLE"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado actualizado."
+          },
+          "400": {
+            "description": "Estado no válido."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Chofer no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/choferes/{idChofer}/ubicacion": {
+      "patch": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Actualizar ubicación del chofer",
+        "description": "",
+        "parameters": [
+          {
+            "name": "idChofer",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del chofer."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "latitud": {
+                  "type": "number",
+                  "example": -24.1858
+                },
+                "longitud": {
+                  "type": "number",
+                  "example": -65.2995
+                },
+                "precision": {
+                  "type": "number",
+                  "example": 15.5
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ubicación actualizada."
+          },
+          "400": {
+            "description": "Latitud/longitud/precision no válida."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Chofer no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/choferes/{idChofer}/autos": {
+      "get": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Autos asignados al chofer",
+        "description": "",
+        "parameters": [
+          {
+            "name": "idChofer",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del chofer."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Autos del chofer.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Auto"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Chofer no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/choferes/{idChofer}/viajes": {
+      "get": {
+        "tags": [
+          "Choferes"
+        ],
+        "summary": "Viajes del chofer",
+        "description": "Usado por el botón 'Ver Mis Viajes' del frontend.",
+        "parameters": [
+          {
+            "name": "idChofer",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del chofer."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viajes del chofer.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Viaje"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Chofer no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/autos/": {
+      "get": {
+        "tags": [
+          "Autos"
+        ],
+        "summary": "Obtener todos los autos",
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de autos.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Auto"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Autos"
+        ],
+        "summary": "Registrar un auto",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Auto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Auto guardado."
+          },
+          "400": {
+            "description": "Error procesando operacion."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/autos/{id}": {
+      "get": {
+        "tags": [
+          "Autos"
+        ],
+        "summary": "Obtener un auto por ID",
+        "description": "Incluye los choferes asignados vía los turnos.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del auto."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Auto encontrado.",
+            "schema": {
+              "$ref": "#/definitions/Auto"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Auto no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Autos"
+        ],
+        "summary": "Editar un auto",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del auto."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Auto"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Auto actualizado."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Auto no encontrado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Autos"
+        ],
+        "summary": "Eliminar un auto",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del auto."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Auto eliminado."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/autos/{id}/estado": {
+      "patch": {
+        "tags": [
+          "Autos"
+        ],
+        "summary": "Cambiar estado del auto",
+        "description": "Estados válidos: DISPONIBLE, EN_VIAJE, EN_TALLER, INACTIVO. Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del auto."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "estado": {
+                  "type": "string",
+                  "example": "DISPONIBLE"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado del auto actualizado."
+          },
+          "400": {
+            "description": "Estado de auto no válido."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Auto no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/turnos/": {
+      "get": {
+        "tags": [
+          "Turnos"
+        ],
+        "summary": "Obtener todos los turnos",
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de turnos.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/TurnoChofer"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Turnos"
+        ],
+        "summary": "Registrar un turno chofer-auto",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TurnoChofer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turno guardado."
+          },
+          "400": {
+            "description": "Error procesando operacion."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/turnos/{id}": {
+      "put": {
+        "tags": [
+          "Turnos"
+        ],
+        "summary": "Editar un turno",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del turno."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/TurnoChofer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turno actualizado."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Turno no encontrado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Turnos"
+        ],
+        "summary": "Eliminar un turno",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del turno."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Turno eliminado."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Turno no encontrado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/viajes/": {
+      "get": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Obtener todos los viajes",
+        "description": "Incluye chofer, auto y reservas.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de viajes.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Viaje"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Registrar un viaje",
+        "description": "Asigna chofer y auto. Requiere rol ADMIN. Los asientos disponibles se toman de la capacidad del auto.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Viaje"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viaje guardado de forma exitosa."
+          },
+          "400": {
+            "description": "Chofer o Auto no válidos, o auto ya EN_CURSO."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/viajes/disponibles": {
+      "get": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Buscar viajes disponibles",
+        "description": "Viajes ABIERTOS o EN_CURSO con asientos > 0, filtrados por origen y destino.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "origen",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Ciudad de origen."
+          },
+          {
+            "name": "destino",
+            "in": "query",
+            "required": true,
+            "type": "string",
+            "description": "Ciudad de destino."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viajes disponibles.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Viaje"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "400": {
+            "description": "Debe enviar origen y destino."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/viajes/{id}": {
+      "get": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Obtener un viaje por ID",
+        "description": "",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del viaje."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viaje encontrado.",
+            "schema": {
+              "$ref": "#/definitions/Viaje"
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "404": {
+            "description": "Viaje no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Editar un viaje",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del viaje."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Viaje"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viaje actualizado con éxito."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Viaje no encontrado."
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Eliminar un viaje",
+        "description": "Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del viaje."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Viaje eliminado."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/viajes/{id}/actualizar-asientos-disponibles": {
+      "post": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Actualizar asientos disponibles",
+        "description": "Se dispara al reservar. No puede superar la capacidad del auto.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del viaje."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "asientosDisponibles": {
+                  "type": "number",
+                  "example": 3
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Asientos disponibles actualizados."
+          },
+          "400": {
+            "description": "Valor inválido o supera la capacidad del auto."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Viaje no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/viajes/{id}/estado": {
+      "patch": {
+        "tags": [
+          "Viajes"
+        ],
+        "summary": "Cambiar estado del viaje",
+        "description": "Estados válidos: ABIERTO, COMPLETO, EN_CURSO, FINALIZADO, CANCELADO. Solo ADMIN o el chofer asignado.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID del viaje."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "estado": {
+                  "type": "string",
+                  "example": "EN_CURSO"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado del viaje actualizado."
+          },
+          "400": {
+            "description": "Estado de viaje no válido."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No tenes permiso para modificar este viaje."
+          },
+          "404": {
+            "description": "Viaje no encontrado."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/reservas/": {
+      "get": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Obtener todas las reservas",
+        "description": "Requiere rol ADMIN. Incluye pasajero, viaje, chofer y auto.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de reservas.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Reserva"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Crear reserva con pago en efectivo",
+        "description": "",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Reserva"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Reserva creada, pendiente de pago en efectivo."
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/reservas/{idReserva}/estado": {
+      "patch": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Cambiar estado de una reserva",
+        "description": "Estados válidos: PENDIENTE, CONFIRMADA, CANCELADA, UTILIZADA, NO_PRESENTADO. Si es CANCELADA, devuelve los asientos al viaje. Requiere rol ADMIN o CHOFER.",
+        "parameters": [
+          {
+            "name": "idReserva",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID de la reserva."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "estado": {
+                  "type": "string",
+                  "example": "CONFIRMADA"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado de reserva actualizado correctamente."
+          },
+          "400": {
+            "description": "Estado de reserva no valido."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Reserva no encontrada."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/reservas/{idReserva}/cancelar": {
+      "patch": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Cancelar una reserva",
+        "description": "Requiere rol ADMIN o el PASAJERO dueño de la reserva. Devuelve los asientos al viaje.",
+        "parameters": [
+          {
+            "name": "idReserva",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID de la reserva."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reserva cancelada correctamente y asientos devueltos al viaje."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "No tenes permiso para cancelar esta reserva."
+          },
+          "404": {
+            "description": "Reserva no encontrada."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/reservas/{idReserva}/pago-efectivo": {
+      "put": {
+        "tags": [
+          "Reservas"
+        ],
+        "summary": "Registrar pago en efectivo",
+        "description": "Lo hace el CHOFER al recibir el pago, o ADMIN.",
+        "parameters": [
+          {
+            "name": "idReserva",
+            "in": "path",
+            "required": true,
+            "type": "integer",
+            "description": "ID de la reserva."
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pago en efectivo registrado con éxito."
+          },
+          "400": {
+            "description": "La reserva ya figura como PAGADA."
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Reserva no encontrada."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/usuarios/": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Obtener todos los usuarios",
+        "description": "Retorna la lista completa de usuarios. Requiere rol ADMIN.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de usuarios obtenida con éxito.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/Usuario"
+              },
+              "xml": {
+                "name": "main"
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado."
+          },
+          "403": {
+            "description": "No tiene rol ADMIN."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/usuarios/login": {
+      "post": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Login (Pasajero, Chofer o Admin)",
+        "description": "Valida email y password, y retorna un token JWT según el rol del usuario.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/LoginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Login exitoso o credenciales incorrectas (status: 0/1)."
+          },
+          "400": {
+            "description": "Faltan credenciales."
+          },
+          "500": {
+            "description": "Internal Server Error"
+          }
+        }
+      }
+    },
+    "/api/usuarios/login-google": {
+      "post": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Login con Google",
+        "description": "Valida un idToken de Google y crea el usuario si no existe.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "token": {
+                  "type": "string",
+                  "example": "eyJhbGciOiJSUzI1NiIsInR5cCI6..."
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Login exitoso, retorna el token JWT propio."
+          },
+          "401": {
+            "description": "Token de Google inválido."
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Usuario": {
+      "type": "object",
+      "properties": {
+        "idUsuario": {
+          "type": "number",
+          "example": 11
+        },
+        "nombre": {
+          "type": "string",
+          "example": "Lucas"
+        },
+        "apellido": {
+          "type": "string",
+          "example": "Cari"
+        },
+        "email": {
+          "type": "string",
+          "example": "administrador@test.com"
+        },
+        "telefono": {
+          "type": "string",
+          "example": "3881234569"
+        },
+        "activo": {
+          "type": "boolean",
+          "example": true
+        },
+        "rol": {
+          "type": "string",
+          "example": "ADMIN"
+        }
+      }
+    },
+    "LoginRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "example": "administrador@test.com"
+        },
+        "password": {
+          "type": "string",
+          "example": "123456"
+        }
+      }
+    },
+    "Pasajero": {
+      "type": "object",
+      "properties": {
+        "idPasajero": {
+          "type": "number",
+          "example": 1
+        },
+        "idUsuario": {
+          "type": "number",
+          "example": 1
+        },
+        "calificacion": {
+          "type": "number",
+          "example": 4.5
+        },
+        "cantidadReservas": {
+          "type": "number",
+          "example": 3
+        },
+        "estadoPasajero": {
+          "type": "string",
+          "example": "ACTIVO"
+        },
+        "latitud": {
+          "type": "number",
+          "example": -24.1858
+        },
+        "longitud": {
+          "type": "number",
+          "example": -65.2995
+        }
+      }
+    },
+    "Chofer": {
+      "type": "object",
+      "properties": {
+        "idChofer": {
+          "type": "number",
+          "example": 1
+        },
+        "idUsuario": {
+          "type": "number",
+          "example": 2
+        },
+        "licenciaConducir": {
+          "type": "string",
+          "example": "ABC123456"
+        },
+        "estadoChofer": {
+          "type": "string",
+          "example": "DISPONIBLE"
+        },
+        "fechaHabilitacion": {
+          "type": "string",
+          "example": "2024-01-15"
+        },
+        "calificacion": {
+          "type": "number",
+          "example": 4.8
+        }
+      }
+    },
+    "Admin": {
+      "type": "object",
+      "properties": {
+        "idAdmin": {
+          "type": "number",
+          "example": 1
+        },
+        "idUsuario": {
+          "type": "number",
+          "example": 3
+        },
+        "estadoAdmin": {
+          "type": "string",
+          "example": "ACTIVO"
+        }
+      }
+    },
+    "Auto": {
+      "type": "object",
+      "properties": {
+        "idAuto": {
+          "type": "number",
+          "example": 1
+        },
+        "patente": {
+          "type": "string",
+          "example": "AB123CD"
+        },
+        "marca": {
+          "type": "string",
+          "example": "Toyota"
+        },
+        "modelo": {
+          "type": "string",
+          "example": "Etios"
+        },
+        "capacidadAsientos": {
+          "type": "number",
+          "example": 4
+        },
+        "estado": {
+          "type": "string",
+          "example": "DISPONIBLE"
+        }
+      }
+    },
+    "TurnoChofer": {
+      "type": "object",
+      "properties": {
+        "idTurnoChofer": {
+          "type": "number",
+          "example": 1
+        },
+        "idChofer": {
+          "type": "number",
+          "example": 1
+        },
+        "idAuto": {
+          "type": "number",
+          "example": 1
+        },
+        "fecha": {
+          "type": "string",
+          "example": "2026-07-10"
+        },
+        "horaInicio": {
+          "type": "string",
+          "example": "08:00:00"
+        },
+        "horaFin": {
+          "type": "string",
+          "example": "14:00:00"
+        }
+      }
+    },
+    "Viaje": {
+      "type": "object",
+      "properties": {
+        "idViaje": {
+          "type": "number",
+          "example": 1
+        },
+        "origen": {
+          "type": "string",
+          "example": "San Salvador de Jujuy"
+        },
+        "destino": {
+          "type": "string",
+          "example": "Perico"
+        },
+        "fechaSalida": {
+          "type": "string",
+          "example": "2026-07-10"
+        },
+        "horaSalida": {
+          "type": "string",
+          "example": "09:30:00"
+        },
+        "tarifaPorAsiento": {
+          "type": "number",
+          "example": 1500
+        },
+        "asientosDisponibles": {
+          "type": "number",
+          "example": 4
+        },
+        "estadoViaje": {
+          "type": "string",
+          "example": "ABIERTO"
+        },
+        "idChofer": {
+          "type": "number",
+          "example": 1
+        },
+        "idAuto": {
+          "type": "number",
+          "example": 1
+        }
+      }
+    },
+    "Reserva": {
+      "type": "object",
+      "properties": {
+        "idReserva": {
+          "type": "number",
+          "example": 1
+        },
+        "idPasajero": {
+          "type": "number",
+          "example": 1
+        },
+        "idViaje": {
+          "type": "number",
+          "example": 1
+        },
+        "cantidadAsientos": {
+          "type": "number",
+          "example": 2
+        },
+        "importeTotal": {
+          "type": "number",
+          "example": 3000
+        },
+        "estadoReserva": {
+          "type": "string",
+          "example": "PENDIENTE"
+        },
+        "estadoPago": {
+          "type": "string",
+          "example": "PENDIENTE"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: taxi-compartido-api
+    runtime: node
+    rootDir: PericoBack
+    buildCommand: npm ci --omit=dev
+    startCommand: npm run db:migrate && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: 22.23.1
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: DB_POOL_MAX
+        value: "5"
+      - key: DB_SSL_CA
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+  - type: web
+    name: taxi-compartido-web
+    runtime: static
+    rootDir: PericoFront
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist/proyfrontendgrupo03/browser
+    envVars:
+      - key: NODE_VERSION
+        value: 22.23.1
+      - key: API_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /app-config.js
+        name: Cache-Control
+        value: no-store

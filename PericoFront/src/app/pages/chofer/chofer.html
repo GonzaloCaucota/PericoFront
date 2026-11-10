@@ -1,0 +1,620 @@
+﻿<section class="driver-dashboard container-fluid py-3 py-md-4">
+  <div class="availability-panel card-custom bg-white border rounded-3 mb-3 mb-md-4">
+    <div class="card-body text-center py-4">
+      <h1 class="availability-title mb-4">Inicia tu servicio desde aquí­</h1>
+
+      <div class="d-flex align-items-center justify-content-center gap-3 mb-4">
+        <span class="availability-label text-muted">Fuera de Servicio</span>
+
+        <div class="form-check form-switch m-0">
+          <input
+            class="form-check-input cursor-pointer"
+            type="checkbox"
+            role="switch"
+            [checked]="chofer?.estadoChofer === 'DISPONIBLE' || chofer?.estadoChofer === 'EN_VIAJE'"
+            (change)="cambiarDisponibilidad($any($event.target).checked)"
+            aria-label="Cambiar estado de disponibilidad"
+          />
+        </div>
+
+        <span class="availability-label text-primary fw-semibold">
+          {{ chofer?.estadoChofer || 'Sin estado' }}
+        </span>
+      </div>
+
+      <div class="new-trip-form mx-auto">
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-4">
+            <label class="form-label text-start w-100">Origen</label>
+            <select class="form-select" [(ngModel)]="nuevoOrigen" (ngModelChange)="onOrigenChange($event)">
+              <option *ngFor="let ciudad of ciudades" [value]="ciudad">
+                {{ ciudad }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label class="form-label text-start w-100">Destino</label>
+            <select class="form-select" [(ngModel)]="nuevoDestino" (ngModelChange)="onDestinoChange($event)">
+              <option *ngFor="let ciudad of ciudades" [value]="ciudad">
+                {{ ciudad }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <button
+              type="button"
+              class="btn btn-primary-custom w-100 py-2"
+              (click)="crearNuevoViaje()"
+              [disabled]="!puedeCrearViaje"
+            >
+              <i class="bi bi-plus-circle me-2"></i>
+              Crear Nuevo Viaje
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 g-md-4">
+    <div class="col-12 col-lg-6">
+      <article class="driver-card card-custom bg-white border rounded-3 h-100">
+        <div class="driver-card-header d-flex align-items-center justify-content-between px-3 px-md-4 py-3">
+          <h2 class="driver-card-title d-flex align-items-center gap-2 m-0">
+            <i class="bi bi-signpost-split text-primary"></i>
+            Viaje Actual
+          </h2>
+
+          <span class="badge text-bg-light border text-secondary" *ngIf="viajeActual">
+            TR-{{ viajeActual.idViaje }}
+          </span>
+        </div>
+
+        <div class="card-body px-3 px-md-4 pt-3 pb-4" *ngIf="viajeActual; else sinViaje">
+          <div class="mb-4">
+            <div class="route-item d-flex gap-3">
+              <div class="route-icon text-secondary">
+                <i class="bi bi-crosshair"></i>
+              </div>
+              <div>
+                <span class="route-label d-block text-uppercase text-secondary fw-semibold">Origen</span>
+                <p class="route-text mb-0">{{ viajeActual.origen }}</p>
+              </div>
+            </div>
+
+            <div class="route-separator ms-2 my-2"></div>
+
+            <div class="route-item d-flex gap-3">
+              <div class="route-icon text-primary">
+                <i class="bi bi-geo-alt"></i>
+              </div>
+              <div>
+                <span class="route-label d-block text-uppercase text-secondary fw-semibold">Destino</span>
+                <p class="route-text mb-0">{{ viajeActual.destino }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="passenger d-flex align-items-center gap-3 mb-4">
+            <div class="passenger-avatar d-flex align-items-center justify-content-center">
+              <i class="bi bi-person-fill"></i>
+            </div>
+
+            <div>
+              <h3 class="passenger-name mb-1">
+                {{ chofer?.usuario?.nombre }} {{ chofer?.usuario?.apellido }}
+              </h3>
+              <p class="passenger-company mb-0 text-secondary">
+                Estado del viaje: {{ viajeActual.estadoViaje }}
+              </p>
+            </div>
+          </div>
+
+          <div class="border-top pt-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0 fw-semibold">
+                <i class="bi bi-people me-2"></i>
+                Asientos
+              </h6>
+              <small class="text-muted">
+                {{ viajeActual.asientosDisponibles }}/4 disponibles
+              </small>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+              <button
+                *ngFor="let asiento of asientos; let i = index"
+                type="button"
+                class="btn btn-sm"
+                [class.btn-primary]="i < (4 - viajeActual.asientosDisponibles)"
+                [class.btn-outline-secondary]="i >= (4 - viajeActual.asientosDisponibles)"
+                [disabled]="i < (4 - viajeActual.asientosDisponibles)"
+                (click)="abrirModalAgregarPasajero()">
+
+                <i
+                  class="bi"
+                  [class.bi-person-fill]="i < (4 - viajeActual.asientosDisponibles)"
+                  [class.bi-plus-lg]="i >= (4 - viajeActual.asientosDisponibles)">
+                </i>
+
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-sm btn-outline-primary"
+                [disabled]="viajeActual.asientosDisponibles <= 0 || viajeActual.estadoViaje === 'FINALIZADO' || viajeActual.estadoViaje === 'CANCELADO'"
+                (click)="abrirModalAgregarPasajero()"
+              >
+                <i class="bi bi-person-plus me-1"></i>
+                Agregar pasajero manual
+              </button>
+            </div>
+
+            <div class="payment-list mt-3 pt-3 border-top" *ngIf="reservasPendientesPago.length > 0">
+              <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                <h6 class="mb-0 fw-semibold">
+                  <i class="bi bi-credit-card-2-front me-2"></i>
+                  Cobros pendientes
+                </h6>
+                <small class="text-muted">{{ reservasPendientesPago.length }} pendiente(s)</small>
+              </div>
+
+              <div class="payment-row" *ngFor="let reservaPendiente of reservasPendientesPago">
+                <div>
+                  <div class="fw-semibold">Reserva #{{ reservaPendiente.idReserva }}</div>
+                  <small class="text-muted">
+                    {{ reservaPendiente.cantidadAsientos }} asiento(s) · {{ reservaPendiente.estadoPago }}
+                  </small>
+                </div>
+
+                <div class="payment-actions">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-success"
+                    (click)="registrarPagoEfectivo(reservaPendiente)"
+                  >
+                    <i class="bi bi-cash-coin me-1"></i>
+                    Efectivo
+                  </button>
+                </div>
+              </div>
+
+
+            </div>
+          </div>
+
+          <div class="driver-actions d-grid gap-3 pt-3 border-top">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="!viajeActual || viajeActual.estadoViaje !== 'ABIERTO'"
+              (click)="iniciarViaje()"
+            >
+              <i class="bi bi-play-fill me-2"></i>
+              Iniciar viaje
+            </button>
+
+            <button
+              type="button"
+              class="btn"
+              [ngClass]="claseAccionCierreViaje"
+              [disabled]="!viajeActual"
+              (click)="finalizarViaje()"
+            >
+              <i class="bi me-2" [ngClass]="iconoAccionCierreViaje"></i>
+              {{ textoAccionCierreViaje }}
+            </button>
+          </div>
+        </div>
+
+        <ng-template #sinViaje>
+          <div class="card-body px-3 px-md-4 py-4 text-center text-secondary">
+            No tienes ningún viaje actualmente. 
+          </div>
+        </ng-template>
+      </article>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <article class="driver-card card-custom bg-white border rounded-3 h-100">
+        <div class="driver-card-header d-flex align-items-center justify-content-between px-3 px-md-4 py-3">
+          <h2 class="driver-card-title d-flex align-items-center gap-2 m-0">
+            <i class="bi bi-car-front text-primary"></i>
+            Vehículo Asignado
+          </h2>
+
+          <span class="badge text-bg-primary">
+            {{ getEstadoAuto() }}
+          </span>
+        </div>
+
+        <div class="card-body px-3 px-md-4 pt-3 pb-4">
+          <div class="vehicle-photo d-flex align-items-end mb-3">
+            <span class="vehicle-caption">
+              {{ autoAsignado?.marca || 'Sin marca' }} {{ autoAsignado?.modelo || '' }}
+            </span>
+          </div>
+
+          <div class="vehicle-stats d-grid gap-3 mb-3">
+            <div class="vehicle-stat text-center border rounded-3 py-3 px-2">
+              <span class="stat-label d-block text-uppercase text-secondary fw-semibold">Patente</span>
+              <strong class="stat-value d-block">
+                {{ autoAsignado?.patente || '-' }}
+              </strong>
+            </div>
+
+            <div class="vehicle-stat text-center border rounded-3 py-3 px-2">
+              <span class="stat-label d-block text-uppercase text-secondary fw-semibold">Capacidad</span>
+              <strong class="stat-value d-flex align-items-center justify-content-center gap-2">
+                <i class="bi bi-person"></i>
+                x{{ autoAsignado?.capacidadAsientos || 0 }}
+              </strong>
+            </div>
+          </div>
+
+          <div class="vehicle-actions d-grid gap-2">
+            <button
+              type="button"
+              class="btn btn-primary py-2 fw-semibold"
+              (click)="toggleGestionAutos()"
+            >
+              <i class="bi bi-car-front-fill me-2"></i>
+              Gestionar Autos
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-light border py-2 fw-semibold text-dark"
+              (click)="toggleHistorial()"
+            >
+              <i class="bi bi-clock-history me-2"></i>
+              Ver Historial de Viajes
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <article
+    class="driver-card card-custom bg-white border rounded-3 mt-3 mt-md-4"
+    *ngIf="mostrarGestionAutos"
+  >
+    <div class="driver-card-header d-flex align-items-center justify-content-between px-3 px-md-4 py-3">
+      <h2 class="driver-card-title d-flex align-items-center gap-2 m-0">
+        <i class="bi bi-tools text-primary"></i>
+        Gestión de Autos
+      </h2>
+
+      <span class="badge text-bg-light border text-secondary">
+        {{ autosActivos.length }}/3 activos
+      </span>
+    </div>
+
+    <div class="card-body px-3 px-md-4 py-4">
+      <form class="auto-form mb-4" (ngSubmit)="guardarAuto()">
+        <div class="alert alert-warning py-2 mb-3" *ngIf="autosActivos.length >= 3 && !autoEditandoId">
+          Ya tenes 3 autos activos. Da de baja uno para registrar otro.
+        </div>
+
+        <div class="row g-3 align-items-end">
+          <div class="col-12 col-md-2">
+            <label class="form-label">Patente</label>
+            <input
+              type="text"
+              class="form-control"
+              name="patente"
+              [(ngModel)]="autoForm.patente"
+              placeholder="ABC123"
+              [disabled]="guardandoAuto"
+              required
+            />
+          </div>
+
+          <div class="col-12 col-md-2">
+            <label class="form-label">Marca</label>
+            <input
+              type="text"
+              class="form-control"
+              name="marca"
+              [(ngModel)]="autoForm.marca"
+              placeholder="Toyota"
+              [disabled]="guardandoAuto"
+              required
+            />
+          </div>
+
+          <div class="col-12 col-md-2">
+            <label class="form-label">Modelo</label>
+            <input
+              type="text"
+              class="form-control"
+              name="modelo"
+              [(ngModel)]="autoForm.modelo"
+              placeholder="Etios"
+              [disabled]="guardandoAuto"
+              required
+            />
+          </div>
+
+          <div class="col-12 col-md-2">
+            <label class="form-label">Capacidad</label>
+            <input
+              type="number"
+              class="form-control"
+              name="capacidadAsientos"
+              [(ngModel)]="autoForm.capacidadAsientos"
+              min="1"
+              max="8"
+              [disabled]="guardandoAuto"
+              required
+            />
+          </div>
+
+          <div class="col-12 col-md-2">
+            <label class="form-label">Estado</label>
+            <select
+              class="form-select"
+              name="estado"
+              [(ngModel)]="autoForm.estado"
+              [disabled]="guardandoAuto"
+            >
+              <option *ngFor="let estado of estadosAuto" [value]="estado">
+                {{ estado }}
+              </option>
+            </select>
+          </div>
+
+          <div class="col-12 col-md-2 d-grid gap-2">
+            <button
+              type="submit"
+              class="btn btn-primary"
+              [disabled]="guardandoAuto || !puedeDarAltaAuto"
+            >
+              <i class="bi" [ngClass]="autoEditandoId ? 'bi-save' : 'bi-plus-circle'"></i>
+              {{ guardandoAuto ? 'Guardando...' : (autoEditandoId ? 'Guardar' : 'Dar de alta') }}
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-light border"
+              *ngIf="autoEditandoId"
+              (click)="cancelarEdicionAuto()"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <div class="table-responsive" *ngIf="autos.length > 0; else sinAutosChofer">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Patente</th>
+              <th>Marca</th>
+              <th>Modelo</th>
+              <th>Capacidad</th>
+              <th>Estado</th>
+              <th class="text-end">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let auto of autos">
+              <td class="fw-semibold">{{ auto.patente }}</td>
+              <td>{{ auto.marca }}</td>
+              <td>{{ auto.modelo }}</td>
+              <td>{{ auto.capacidadAsientos }}</td>
+              <td>
+                <select
+                  class="form-select form-select-sm auto-state-select"
+                  [ngModel]="getEstadoAutoItem(auto)"
+                  (ngModelChange)="cambiarEstadoAuto(auto, $any($event))"
+                >
+                  <option *ngFor="let estado of estadosAuto" [value]="estado">
+                    {{ estado }}
+                  </option>
+                </select>
+              </td>
+              <td class="text-end">
+                <div class="auto-row-actions">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-light border"
+                    (click)="editarAuto(auto)"
+                  >
+                    <i class="bi bi-pencil"></i>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-danger"
+                    [disabled]="getEstadoAutoItem(auto) === 'INACTIVO'"
+                    (click)="darBajaAuto(auto)"
+                  >
+                    <i class="bi bi-arrow-down-circle me-1"></i>
+                    Baja
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #sinAutosChofer>
+        <div class="empty-map auto-empty-state">
+          Todavía no registraste autos.
+        </div>
+      </ng-template>
+    </div>
+  </article>
+
+  <article
+    class="driver-card card-custom bg-white border rounded-3 mt-3 mt-md-4"
+    *ngIf="mostrarHistorial"
+  >
+    <div class="driver-card-header px-3 px-md-4 py-3">
+      <h2 class="driver-card-title m-0">
+        <i class="bi bi-clock-history text-primary me-2"></i>
+        Historial de Viajes
+      </h2>
+    </div>
+
+    <div class="card-body px-3 px-md-4">
+      <div class="table-responsive" *ngIf="viajesHistorial.length > 0; else sinHistorial">
+        <table class="table align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Origen</th>
+              <th>Destino</th>
+              <th>Fecha</th>
+              <th>Hora</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let viaje of viajesHistorial">
+              <td>{{ viaje.origen }}</td>
+              <td>{{ viaje.destino }}</td>
+              <td>{{ viaje.fechaSalida }}</td>
+              <td>{{ viaje.horaSalida }}</td>
+              <td>{{ viaje.estadoViaje }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #sinHistorial>
+        <p class="text-secondary mb-0">Todavía no hay viajes finalizados.</p>
+      </ng-template>
+    </div>
+  </article>
+
+  <section class="driver-map-section card-custom bg-white border rounded-3 mt-3 mt-md-4">
+    <div class="map-section-header">
+      <div>
+        <h2 class="driver-card-title mb-1">
+          <i class="bi bi-geo-alt text-primary me-2"></i>
+          Mi ubicacion
+        </h2>
+        <p class="text-secondary mb-0">
+          Envía tu ubicación actual cuando quieras compartirla con el pasajero.
+        </p>
+      </div>
+    </div>
+
+    <div class="driver-location-actions">
+      <button
+        type="button"
+        class="btn btn-primary location-main-button"
+        [disabled]="cargandoUbicacion"
+        (click)="enviarUbicacion()"
+      >
+        <i class="bi bi-crosshair me-2"></i>
+        {{ cargandoUbicacion ? 'Enviando ubicación...' : 'Enviar mi ubicación actual' }}
+      </button>
+    </div>
+
+    @if (puntoChofer) {
+      <div class="mt-3">
+        <app-mapa-ruta
+          idMapa="mapaChofer"
+          [chofer]="puntoChofer"
+        ></app-mapa-ruta>
+      </div>
+    } @else {
+      <div class="empty-map mt-3">
+        Todavía no enviaste una ubicación.
+      </div>
+    }
+  </section>
+
+  <div class="modal fade" id="modalAgregarPasajero" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="bi bi-person-plus-fill me-2"></i>
+            Agregar pasajero
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <p class="mb-2">
+            ¿Desea registrar un pasajero sin utilizar la aplicación?
+          </p>
+
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-exclamation-triangle me-2"></i>
+            Se ocupará un asiento disponible y esta acción no podrá deshacerse.
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+            Cancelar
+          </button>
+
+          <button class="btn btn-primary" (click)="confirmarAgregarPasajero()">
+            <i class="bi bi-check-lg me-2"></i>
+            Agregar pasajero
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalConfirmacionAccion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content confirmation-modal">
+
+        <div class="modal-header border-0 pb-0">
+          <div class="confirmation-heading">
+            <span class="confirmation-icon" [ngClass]="'confirmation-' + confirmacionModal.variante">
+              <i class="bi" [ngClass]="confirmacionModal.icono"></i>
+            </span>
+
+            <div>
+              <h5 class="modal-title mb-1">
+                {{ confirmacionModal.titulo }}
+              </h5>
+              <p class="text-secondary mb-0">
+                {{ confirmacionModal.mensaje }}
+              </p>
+            </div>
+          </div>
+
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-footer border-0 pt-4">
+          <button
+            type="button"
+            class="btn btn-light border"
+            data-bs-dismiss="modal"
+          >
+            Volver
+          </button>
+
+          <button
+            type="button"
+            class="btn"
+            [ngClass]="'btn-' + confirmacionModal.variante"
+            (click)="confirmarAccionModal()"
+          >
+            <i class="bi me-2" [ngClass]="confirmacionModal.icono"></i>
+            {{ confirmacionModal.textoConfirmar }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+

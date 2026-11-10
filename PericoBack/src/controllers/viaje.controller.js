@@ -1,0 +1,472 @@
+const { Op } = require('sequelize');
+const Viaje = require('./../../src/models/viaje.model'); 
+const Auto = require('./../../src/models/auto.model'); 
+const Chofer = require('./../../src/models/chofer.model'); 
+const Reserva = require('./../../src/models/reserva.model');
+const Usuario = require('./../../src/models/usuario.model');
+const TurnoChofer = require('./../../src/models/turnoChofer');
+
+const viajeCtrl = {};
+
+const protegerReservas = async (req, viajes) => {
+    if (req.usuario.rol === 'ADMIN') return viajes;
+    const { Pasajero } = require('../models/relaciones');
+    const chofer = req.usuario.rol === 'CHOFER' && await Chofer.findOne({ where: { idUsuario: req.usuario.idUsuario } });
+    const pasajero = req.usuario.rol === 'PASAJERO' && await Pasajero.findOne({ where: { idUsuario: req.usuario.idUsuario } });
+    return viajes.map(viaje => {
+        const datos = viaje.toJSON();
+        if (!chofer || chofer.idChofer !== datos.idChofer) {
+            datos.reservas = (datos.reservas || []).filter(reserva => pasajero && reserva.idPasajero === pasajero.idPasajero);
+        }
+        return datos;
+    });
+};
+
+const validarChoferAutenticado = async (req, idChofer) => {
+    // Evita que un chofer cree o modifique viajes usando el idChofer de otra cuenta.
+    if (req.usuario.rol === 'ADMIN') return true;
+
+    const chofer = await Chofer.findByPk(idChofer);
+    return Boolean(chofer && chofer.idUsuario === req.usuario.idUsuario);
+};
+
+const validarAutoDelChofer = async (req, idChofer, idAuto) => {
+    // El auto debe estar vinculado al chofer mediante TurnoChofer.
+    if (req.usuario.rol === 'ADMIN') return true;
+
+    const turno = await TurnoChofer.findOne({
+        where: {
+            idChofer,
+            idAuto
+        }
+    });
+
+    return Boolean(turno);
+};
+
+// Obtener TODOS los viajes con todas sus relaciones 
+viajeCtrl.getViajes = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Obtener todos los viajes'
+      #swagger.description = 'Incluye chofer, auto y reservas.'
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.responses[200] = { description: 'Lista de viajes.', schema: [{ $ref: '#/definitions/Viaje' }] }
+    */
+    try {
+        const viajes = await Viaje.findAll({
+            include: ['chofer', 'auto', 'reservas'] 
+        });
+        res.json(await protegerReservas(req, viajes));
+    } catch (error) {
+        res.status(500).json({ status: '0', msg: 'Error al obtener los viajes.' });
+    }
+};
+
+// Obtener un viaje específico 
+viajeCtrl.getViaje = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Obtener un viaje por ID'
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer', description: 'ID del viaje.' }
+      #swagger.responses[200] = { description: 'Viaje encontrado.', schema: { $ref: '#/definitions/Viaje' } }
+      #swagger.responses[404] = { description: 'Viaje no encontrado.' }
+    */
+    try {
+        const viaje = await Viaje.findByPk(req.params.id, {
+            include: ['chofer', 'auto', 'reservas'] 
+        });
+        if (!viaje) {
+            return res.status(404).json({ status: '0', msg: 'Viaje no encontrado.' });
+        }
+        res.json((await protegerReservas(req, [viaje]))[0]);
+    } catch (error) {
+        return res.status(500).json({ status: '0', msg: 'Error al buscar el viaje.' });
+    }
+};
+
+// Buscar viajes abiertos por origen y destino, mostrando solo los que tienen asientos.
+/*viajeCtrl.getViajesDisponibles = async (req, res) => {
+    try {
+        const { origen, destino } = req.query;
+
+        if (!origen || !destino) {
+            return res.status(400).json({ status: '0', msg: 'Debe enviar origen y destino.' });
+        }
+
+        const viajes = await Viaje.findAll({
+            where: {
+                origen,
+                destino,
+                estadoViaje: 'ABIERTO',
+                asientosDisponibles: {
+                    [Op.gt]: 0
+                }
+            },
+            include: ['chofer', 'auto', 'reservas', 'usuario'],
+            order: [['fechaSalida', 'ASC'], ['horaSalida', 'ASC']]
+        });
+
+        return res.status(200).json(await protegerReservas(req, viajes));
+    } catch (error) {
+        return res.status(500).json({ status: '0', msg: 'Error al buscar viajes disponibles.' });
+    }
+};*/
+
+viajeCtrl.getViajesDisponibles = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Buscar viajes disponibles'
+      #swagger.description = 'Viajes ABIERTOS o EN_CURSO con asientos > 0, filtrados por origen y destino.'
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.parameters['origen'] = { in: 'query', required: true, type: 'string', description: 'Ciudad de origen.' }
+      #swagger.parameters['destino'] = { in: 'query', required: true, type: 'string', description: 'Ciudad de destino.' }
+      #swagger.responses[200] = { description: 'Viajes disponibles.', schema: [{ $ref: '#/definitions/Viaje' }] }
+      #swagger.responses[400] = { description: 'Debe enviar origen y destino.' }
+    */
+    try {
+        const { origen, destino } = req.query;
+        const origenNormalizado = String(origen || '').trim();
+        const destinoNormalizado = String(destino || '').trim();
+
+        if (!origenNormalizado || !destinoNormalizado) {
+            return res.status(400).json({
+                status: '0',
+                msg: 'Debe enviar origen y destino.'
+            });
+        }
+
+        // El pasajero puede reservar viajes publicados o ya iniciados, siempre que queden asientos.
+        // iLike evita que una diferencia de mayusculas/minusculas rompa la busqueda.
+        const viajes = await Viaje.findAll({
+            where: {
+                origen: {
+                    [Op.iLike]: origenNormalizado
+                },
+                destino: {
+                    [Op.iLike]: destinoNormalizado
+                },
+                estadoViaje: {
+                    [Op.in]: ['ABIERTO', 'EN_CURSO']
+                },
+                asientosDisponibles: {
+                    [Op.gt]: 0
+                }
+            },
+            include: [
+                {
+                    association: 'chofer',
+                    include: [
+                        {
+                            association: 'usuario',
+                            attributes: {
+                                exclude: ['passwordHash']
+                            }
+                        }
+                    ]
+                },
+                {
+                    association: 'auto'
+                },
+                {
+                    association: 'reservas'
+                }
+            ],
+            order: [
+                ['fechaSalida', 'ASC'],
+                ['horaSalida', 'ASC']
+            ]
+        });
+
+        return res.status(200).json(await protegerReservas(req, viajes));
+    } catch (error) {
+        console.error(error);
+
+        return res.status(500).json({
+            status: '0',
+            msg: 'Error al buscar viajes disponibles.',
+            error: error.message
+        });
+    }
+};
+
+// Registrar un nuevo viaje
+viajeCtrl.createViaje = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Registrar un viaje'
+      #swagger.description = 'Asigna chofer y auto. Requiere rol ADMIN. Los asientos disponibles se toman de la capacidad del auto.'
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.parameters['body'] = { in: 'body', required: true, schema: { $ref: '#/definitions/Viaje' } }
+      #swagger.responses[200] = { description: 'Viaje guardado de forma exitosa.' }
+      #swagger.responses[400] = { description: 'Chofer o Auto no válidos, o auto ya EN_CURSO.' }
+    */
+    try {
+        const { idChofer, idAuto } = req.body;
+
+        // Verificar que existan el chofer y el auto
+        const choferExiste = await Chofer.findByPk(idChofer);
+        const autoExiste = await Auto.findByPk(idAuto);
+
+        if (!choferExiste || !autoExiste) {
+            return res.status(400).json({ status: '0', msg: 'Chofer o Auto no válidos/inexistentes.' });
+        }
+
+        // Un auto no puede estar en más de un viaje EN_CURSO al mismo tiempo
+        if (!(await validarChoferAutenticado(req, idChofer))) {
+            return res.status(403).json({ status: '0', msg: 'No tenes permiso para crear viajes para este chofer.' });
+        }
+
+        if (!(await validarAutoDelChofer(req, idChofer, idAuto))) {
+            return res.status(403).json({ status: '0', msg: 'No tenes permiso para usar este auto.' });
+        }
+
+        const autoOcupado = await Viaje.findOne({
+            where: {
+                idAuto: idAuto,
+                estadoViaje: 'EN_CURSO'
+            }
+        });
+
+        if (autoOcupado) {
+            return res.status(400).json({ status: '0', msg: 'El auto asignado ya se encuentra en un viaje EN CURSO.' });
+        }
+
+        // La capacidad del auto define los asientos iniciales del viaje.
+        const asientosIniciales = autoExiste.capacidadAsientos; 
+
+        const nuevoViaje = await Viaje.create({
+            ...req.body,                           // Pasa automáticamente origen, destino, fechas, tarifas, idChofer, idAuto, etc.
+            asientosDisponibles: asientosIniciales, 
+            estadoViaje: 'ABIERTO'                 
+        });
+
+        res.json({ status: '1', msg: 'Viaje guardado de forma exitosa.' });
+    } catch (error) {
+        res.status(400).json({ status: '0', msg: 'Error procesando la operación de guardado.' });
+    }
+};
+
+
+// Editar datos del viaje
+viajeCtrl.editViaje = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Editar un viaje'
+      #swagger.description = 'Requiere rol ADMIN.'
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer', description: 'ID del viaje.' }
+      #swagger.parameters['body'] = { in: 'body', required: true, schema: { $ref: '#/definitions/Viaje' } }
+      #swagger.responses[200] = { description: 'Viaje actualizado con éxito.' }
+      #swagger.responses[404] = { description: 'Viaje no encontrado.' }
+    */
+    try {
+        const [actualizados] = await Viaje.update(req.body, {
+            where: { idViaje: req.params.id } 
+        });
+        if (actualizados === 0) {
+            return res.status(404).json({ status: '0', msg: 'Viaje no encontrado.' });
+        }
+        res.json({ status: '1', msg: 'Viaje actualizado con éxito.' });
+    } catch (error) {
+        res.status(400).json({ status: '0', msg: 'Error procesando la operación.' });
+    }
+};
+
+
+// Cambiar estado del viaje
+viajeCtrl.changeEstado = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Cambiar estado del viaje'
+      #swagger.description = "Estados válidos: ABIERTO, COMPLETO, EN_CURSO, FINALIZADO, CANCELADO. Solo ADMIN o el chofer asignado."
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer', description: 'ID del viaje.' }
+      #swagger.parameters['body'] = { in: 'body', required: true, schema: { estado: 'EN_CURSO' } }
+      #swagger.responses[200] = { description: 'Estado del viaje actualizado.' }
+      #swagger.responses[400] = { description: 'Estado de viaje no válido.' }
+      #swagger.responses[403] = { description: 'No tenes permiso para modificar este viaje.' }
+      #swagger.responses[404] = { description: 'Viaje no encontrado.' }
+    */
+    try {
+        const idViaje = req.params.id;
+        const estado = req.body.estado;
+
+        const estadosValidos = ['ABIERTO', 'COMPLETO', 'EN_CURSO', 'FINALIZADO', 'CANCELADO'];
+        if (!estadosValidos.includes(estado)) {
+            return res.status(400).json({ status: '0', msg: 'Estado de viaje no válido.' });
+        }
+
+        const viaje = await Viaje.findByPk(idViaje);
+        if (!viaje) {
+            return res.status(404).json({ status: '0', msg: 'Viaje no encontrado.' });
+        }
+
+        // Solo puede cambiar el estado: un ADMIN, o el chofer asignado a ese viaje.
+        if (req.usuario.rol !== 'ADMIN') {
+            const chofer = await Chofer.findByPk(viaje.idChofer);
+            if (!chofer || chofer.idUsuario !== req.usuario.idUsuario) {
+                return res.status(403).json({ status: '0', msg: 'No tenes permiso para modificar este viaje.' });
+            }
+        }
+
+        if (['FINALIZADO', 'CANCELADO'].includes(viaje.estadoViaje)) return res.status(400).json({ mensaje: 'El viaje ya termino' });
+
+        // Al cambiar estado se notifica a pasajero/chofer por Socket.IO para refrescar las pantallas.
+        viaje.estadoViaje = estado;
+        await viaje.save();
+
+        const reservasActualizadas = [];
+
+        if (estado === 'CANCELADO' || estado === 'FINALIZADO') {
+            const reservasActivas = await Reserva.findAll({
+                where: {
+                    idViaje: viaje.idViaje,
+                    estadoReserva: {
+                        [Op.in]: ['PENDIENTE', 'CONFIRMADA']
+                    }
+                }
+            });
+
+            for (const reserva of reservasActivas) {
+                reserva.estadoReserva = estado === 'CANCELADO' ? 'CANCELADA' : 'UTILIZADA';
+                await reserva.save();
+                reservasActualizadas.push(reserva);
+
+                if (req.io) {
+                    req.io.emit(`reserva_actualizada_${reserva.idReserva}`, {
+                        idReserva: reserva.idReserva,
+                        idViaje: viaje.idViaje,
+                        estadoReserva: reserva.estadoReserva,
+                        reserva,
+                        viaje
+                    });
+
+                    if (estado === 'CANCELADO') {
+                        req.io.emit(`reserva_cancelada_${reserva.idReserva}`, {
+                            idReserva: reserva.idReserva,
+                            idViaje: viaje.idViaje,
+                            reserva,
+                            viaje
+                        });
+                    }
+                }
+            }
+        }
+
+        const viajeActualizado = await Viaje.findByPk(idViaje, {
+            include: ['chofer', 'auto', 'reservas']
+        });
+
+        if (req.io) {
+            req.io.emit(`viaje_actualizado_${viaje.idViaje}`, {
+                idViaje: viaje.idViaje,
+                estadoViaje: viaje.estadoViaje,
+                viaje: viajeActualizado
+            });
+        }
+
+        return res.status(200).json({
+            status: '1',
+            msg: 'Estado del viaje actualizado.',
+            viaje: viajeActualizado,
+            reservasActualizadas
+        });
+    } catch (error) {
+        return res.status(500).json({ status: '0', msg: 'Error al actualizar el estado.', error: error.message });
+    }
+};
+
+// Actualizar asientos disponibles del viaje
+viajeCtrl.actualizarAsientosDisponibles = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Actualizar asientos disponibles'
+      #swagger.description = 'Se dispara al reservar. No puede superar la capacidad del auto.'
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer', description: 'ID del viaje.' }
+      #swagger.parameters['body'] = { in: 'body', required: true, schema: { asientosDisponibles: 3 } }
+      #swagger.responses[200] = { description: 'Asientos disponibles actualizados.' }
+      #swagger.responses[400] = { description: 'Valor inválido o supera la capacidad del auto.' }
+      #swagger.responses[404] = { description: 'Viaje no encontrado.' }
+    */
+    try {
+        const idViaje = req.params.id;
+        const { asientosDisponibles } = req.body;
+
+        if (asientosDisponibles === undefined || asientosDisponibles === null) {
+            return res.status(400).json({ status: '0', msg: 'Debe enviar asientosDisponibles.' });
+        }
+
+        const nuevosAsientos = Number(asientosDisponibles);
+        if (!Number.isInteger(nuevosAsientos) || nuevosAsientos < 0) {
+            return res.status(400).json({ status: '0', msg: 'Los asientos disponibles deben ser un numero entero mayor o igual a 0.' });
+        }
+
+        const viaje = await Viaje.findByPk(idViaje, {
+            include: ['auto']
+        });
+
+        if (!viaje) {
+            return res.status(404).json({ status: '0', msg: 'Viaje no encontrado.' });
+        }
+
+        if (viaje.auto && nuevosAsientos > viaje.auto.capacidadAsientos) {
+            return res.status(400).json({ status: '0', msg: 'Los asientos disponibles no pueden superar la capacidad del auto.' });
+        }
+
+        if (req.usuario.rol !== 'ADMIN') {
+            const chofer = await Chofer.findByPk(viaje.idChofer);
+            if (!chofer || chofer.idUsuario !== req.usuario.idUsuario) {
+                return res.status(403).json({ status: '0', msg: 'No tenes permiso para actualizar los asientos de este viaje.' });
+            }
+        }
+
+        viaje.asientosDisponibles = nuevosAsientos;
+        await viaje.save();
+
+        const viajeActualizado = await Viaje.findByPk(idViaje, {
+            include: ['chofer', 'auto', 'reservas']
+        });
+
+        if (req.io) {
+            req.io.emit(`asientos_actualizados_viaje_${viajeActualizado.idViaje}`, {
+                idViaje: viajeActualizado.idViaje,
+                asientosDisponibles: viajeActualizado.asientosDisponibles,
+                viaje: viajeActualizado
+            });
+        }
+
+        return res.status(200).json({
+            status: '1',
+            msg: 'Asientos disponibles actualizados.',
+            viaje: viajeActualizado
+        });
+    } catch (error) {
+        return res.status(500).json({ status: '0', msg: 'Error al actualizar los asientos disponibles.' });
+    }
+};
+
+
+// Eliminar un viaje
+viajeCtrl.deleteViaje = async (req, res) => {
+    /*
+      #swagger.tags = ['Viajes']
+      #swagger.summary = 'Eliminar un viaje'
+      #swagger.description = 'Requiere rol ADMIN.'
+      #swagger.security = [{ "bearerAuth": [] }]
+      #swagger.parameters['id'] = { in: 'path', required: true, type: 'integer', description: 'ID del viaje.' }
+      #swagger.responses[200] = { description: 'Viaje eliminado.' }
+    */
+    try {
+        await Viaje.destroy({
+            where: { idViaje: req.params.id }
+        });
+        res.json({ status: '1', msg: 'Viaje eliminado.' });
+    } catch (error) {
+        res.status(400).json({ status: '0', msg: 'Error procesando la operación.' });
+    }
+};
+
+module.exports = viajeCtrl;

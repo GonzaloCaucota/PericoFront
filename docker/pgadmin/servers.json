@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Taxi Compartido - Local",
+      "Group": "Desarrollo",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "perico_db",
+      "Username": "taxi_local",
+      "SSLMode": "disable"
+    }
+  }
+}
