@@ -1,3 +1,4 @@
+import { Notificaciones } from './components/notificaciones/notificaciones';
 import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Home } from './pages/home/home';
@@ -6,7 +7,7 @@ import { Footer } from './pages/layout/footer/footer';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, Header, Footer],
+  imports: [RouterOutlet, Header, Footer, Notificaciones],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

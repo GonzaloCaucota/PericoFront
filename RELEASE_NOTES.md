@@ -1,3 +1,7 @@
+# v1.0.1-webdeploy
+
+Correccion del primer despliegue en Netlify: se reemplaza ngx-toastr (peer Angular 21) por notificaciones propias compatibles con Angular 22. Instalacion limpia de dependencias sin force ni legacy-peer-deps, build de produccion y 27 pruebas frontend aprobados.
+
 # v1.0.0-webdeploy
 
 Proyecto completo preparado para frontend en Netlify, API y Socket.IO en Render y PostgreSQL en Supabase.

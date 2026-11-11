@@ -12,7 +12,7 @@ import * as bootstrap from 'bootstrap';
 import { GeolocationService } from '../../services/geolocalizacion.service';
 import { MapaRutaComponent, PuntoMapa } from '../../components/mapa-ruta/mapa-ruta';
 import { SocketService } from '../../services/socket.service';
-import { ToastrService } from 'ngx-toastr';
+import { NotificacionesService } from '../../services/notificaciones.service';
 
 type AutoBack = Auto & {
   estado?: 'DISPONIBLE' | 'EN_VIAJE' | 'EN_TALLER' | 'INACTIVO';
@@ -83,7 +83,7 @@ export class Chofer implements OnInit {
     private _geolocationService: GeolocationService,
     private _changeDetectorRef: ChangeDetectorRef,
     private _socketService: SocketService,
-    private _toastr: ToastrService
+    private _toastr: NotificacionesService
   ) {}
 
   get invitadosConUbicacion(): any[] {

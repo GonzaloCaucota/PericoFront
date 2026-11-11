@@ -10,7 +10,7 @@ import { Viaje } from '../../../models/viaje.model';
 import { Reserva } from '../../../models/reserva.model';
 import { MapaRutaComponent, PuntoMapa } from '../../components/mapa-ruta/mapa-ruta';
 import { SocketService } from '../../services/socket.service';
-import { ToastrService } from 'ngx-toastr';
+import { NotificacionesService } from '../../services/notificaciones.service';
 import * as bootstrap from 'bootstrap';
 
 type ViajeCard = Viaje & {
@@ -66,7 +66,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
     private _rutaService: RutaService,
     private _changeDetectorRef: ChangeDetectorRef,
     private _socketService: SocketService,
-    private _toastr: ToastrService
+    private _toastr: NotificacionesService
   ) {}
 
   ngOnInit(): void {
