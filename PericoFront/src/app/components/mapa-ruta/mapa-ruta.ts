@@ -1,6 +1,8 @@
 import {
   AfterViewInit,
   Component,
+  ElementRef,
+  ViewChild,
   Input,
   OnChanges,
   OnDestroy,
@@ -28,6 +30,8 @@ export class MapaRutaComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input() pasajero?: PuntoMapa;
   @Input() rutaGeoJson?: GeoJSON.LineString;
 
+  @ViewChild('contenedor', { static: true }) contenedor!: ElementRef<HTMLDivElement>;
+  private observador?: ResizeObserver;
   private mapa?: L.Map;
   private marcadorChofer?: L.Marker;
   private marcadorPasajero?: L.Marker;
@@ -36,6 +40,10 @@ export class MapaRutaComponent implements AfterViewInit, OnChanges, OnDestroy {
   ngAfterViewInit(): void {
     this.crearMapa();
     this.renderizar();
+    if (typeof ResizeObserver !== 'undefined') {
+      this.observador = new ResizeObserver(() => this.mapa?.invalidateSize());
+      this.observador.observe(this.contenedor.nativeElement);
+    }
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -43,6 +51,7 @@ export class MapaRutaComponent implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.observador?.disconnect();
     this.mapa?.remove();
   }
 
@@ -51,7 +60,7 @@ export class MapaRutaComponent implements AfterViewInit, OnChanges, OnDestroy {
 
     // Leaflet usa tiles publicos de OpenStreetMap como fondo del mapa.
     const centro: L.LatLngExpression = [-24.256, -65.211];
-    this.mapa = L.map(this.idMapa, {
+    this.mapa = L.map(this.contenedor.nativeElement, {
       zoomControl: true
     }).setView(centro, 13);
 

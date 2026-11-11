@@ -139,7 +139,7 @@ viajeCtrl.getViajesPublicos = async (req, res, next) => {
                     { association: 'habilitacion', attributes: [], required: true, where: { estado: 'APROBADO' } },
                     { association: 'usuario', attributes: [], required: true, where: { activo: true } },
                 ] },
-                { association: 'auto', attributes: ['marca', 'modelo'], required: true, where: { estado: { [Op.in]: ['DISPONIBLE', 'EN_VIAJE'] } } },
+                { association: 'auto', attributes: ['marca', 'modelo', 'capacidadAsientos'], required: true, where: { estado: { [Op.in]: ['DISPONIBLE', 'EN_VIAJE'] } } },
             ],
             limit: 100, order: [['fechaSalida', 'ASC'], ['horaSalida', 'ASC'], ['idViaje', 'ASC']],
         });
@@ -149,7 +149,7 @@ viajeCtrl.getViajesPublicos = async (req, res, next) => {
             asientosDisponibles: v.asientosDisponibles, estadoViaje: v.estadoViaje,
             salida: v.recorrido.paradaOrigen.nombre, llegada: v.recorrido.paradaDestino.nombre,
             llegadaConfirmada: v.recorrido.paradaDestino.ubicacionConfirmada,
-            vehiculo: { marca: v.auto.marca, modelo: v.auto.modelo },
+            vehiculo: { marca: v.auto.marca, modelo: v.auto.modelo, capacidadAsientos: v.auto.capacidadAsientos },
         })));
     } catch (error) { next(error); }
 };

@@ -17,6 +17,9 @@ describe('Viajes como invitado', () => {
     request.flush([{ idViaje: 1, origen: 'Jujuy', destino: 'Perico', fechaSalida: '2099-11-10', horaSalida: '12:00', tarifaPorAsiento: '1500', asientosDisponibles: 3, salida: 'Dorrego', llegada: 'Centro', llegadaConfirmada: false }]);
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('3 asientos disponibles');
+    const asientos = fixture.nativeElement.querySelectorAll('.seat-chip');
+    expect(Array.from(asientos).map((a: any) => a.textContent.trim())).toEqual(['1', '2', '3', '4']);
+    expect(fixture.nativeElement.querySelectorAll('.seat-chip-busy').length).toBe(1);
     expect(fixture.nativeElement.textContent).toContain('Reservar sin cuenta');
     http.verify();
   });
@@ -79,6 +82,10 @@ describe('Ubicacion de invitado', () => {
     expect(req.request.body).toEqual({ compartir: true, latitud: -24.2, longitud: -65.3, precision: 15 });
     req.flush({ compartiendo: true });
     expect(component.mensajeUbicacion).toContain('Ubicacion compartida');
+    expect(component.puntoPasajero).toMatchObject({ latitud: -24.2, longitud: -65.3 });
+    component.retirarUbicacion();
+    http.expectOne(`${API_URL}/reservas/invitado/ubicacion`).flush({ compartiendo: false, ubicacion: null });
+    expect(component.puntoPasajero).toBeUndefined();
     http.verify();
   });
   it('respeta el permiso denegado sin enviar coordenadas', () => {

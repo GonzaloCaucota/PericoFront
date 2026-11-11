@@ -5,17 +5,19 @@ import { RouterLink } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { API_URL } from '../../config/api';
 import { RecorridoService } from '../../services/recorrido.service';
+import { MapaRutaComponent, PuntoMapa } from '../mapa-ruta/mapa-ruta';
 import { Recorrido } from '../../../models/recorrido.model';
 
 export interface ViajePublico {
   idViaje: number; origen: string; destino: string; fechaSalida: string; horaSalida: string;
   tarifaPorAsiento: string; asientosDisponibles: number; salida: string; llegada: string;
-  llegadaConfirmada: boolean; estadoViaje: string; vehiculo: { marca: string; modelo: string };
+  llegadaConfirmada: boolean; estadoViaje: string; vehiculo: { marca: string; modelo: string; capacidadAsientos?: number };
 }
 
 @Component({
   selector: 'app-viajes-publicos', standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, MapaRutaComponent],
+  styleUrl: './viajes-publicos.scss',
   template: `
     <section class="container py-4" aria-labelledby="viajes-publicos-titulo">
       <h2 id="viajes-publicos-titulo">Viajes disponibles</h2>
@@ -56,6 +58,7 @@ export interface ViajePublico {
           <button class="btn btn-outline-success me-2" (click)="compartirUbicacion()" [disabled]="localizando">{{ localizando ? 'Obteniendo ubicacion…' : 'Compartir / actualizar mi ubicacion' }}</button>
           <button class="btn btn-outline-secondary" (click)="retirarUbicacion()" [disabled]="localizando">Dejar de compartir</button>
           <p class="small mt-2" role="status">{{ mensajeUbicacion }}</p>
+          <app-mapa-ruta *ngIf="puntoPasajero" idMapa="mapaInvitado" [pasajero]="puntoPasajero" />
         </div>
         <div *ngIf="comprobante" class="mt-3">
           <p>Reserva #{{ comprobante.idReserva }} · {{ comprobante.cantidadAsientos }} asiento(s) · {{ comprobante.importeTotal | currency:'ARS' }}</p>
@@ -65,13 +68,22 @@ export interface ViajePublico {
       </div>
       <div class="row g-3" aria-live="polite">
         <article class="col-md-6 col-xl-4" *ngFor="let v of viajes">
-          <div class="card h-100 p-3">
+          <div class="card trip-card h-100 p-3">
             <h3 class="h5">{{ v.origen }} → {{ v.destino }}</h3>
             <p>{{ v.fechaSalida | date:'dd/MM/yyyy' }} · {{ v.horaSalida.slice(0,5) }} <span *ngIf="v.estadoViaje === 'EN_CURSO'" class="badge bg-success">En curso</span></p>
             <p class="mb-1"><strong>Salida:</strong> {{ v.salida }}</p>
             <p class="mb-1"><strong>Llegada:</strong> {{ v.llegada }}</p>
             <small *ngIf="!v.llegadaConfirmada" class="text-muted">Punto de llegada aproximado</small>
             <p class="mt-2">{{ v.asientosDisponibles }} asientos disponibles · {{ v.tarifaPorAsiento | currency:'ARS':'symbol':'1.0-2' }} por asiento</p>
+            <div class="seat-panel mb-3">
+              <span>Asientos</span>
+              <div class="seat-list" aria-label="Estado de los asientos">
+                <span *ngFor="let asiento of getAsientos(v); let i = index" class="seat-chip"
+                  [class.seat-chip-busy]="i < getAsientosOcupados(v)"
+                  [attr.aria-label]="'Asiento ' + asiento + (i < getAsientosOcupados(v) ? ': ocupado' : ': disponible')">{{ asiento }}</span>
+              </div>
+            </div>
+            <small class="text-muted mb-3">Azul: ocupado · Blanco: disponible</small>
             <button class="btn btn-primary mt-auto" (click)="seleccionado = v; mensajeReserva = ''">Reservar sin cuenta</button>
             <a routerLink="/pasajero" class="mt-2">Reservar con mi cuenta</a>
           </div>
@@ -89,6 +101,13 @@ export class ViajesPublicos implements OnInit {
   cargando = false;
   error = '';
   seleccionado?: ViajePublico;
+  puntoPasajero?: PuntoMapa;
+  getAsientos(viaje: ViajePublico): number[] {
+    return Array.from({ length: viaje.vehiculo?.capacidadAsientos || 4 }, (_, i) => i + 1);
+  }
+  getAsientosOcupados(viaje: ViajePublico): number {
+    return Math.max(0, this.getAsientos(viaje).length - viaje.asientosDisponibles);
+  }
   localizando = false;
   mensajeUbicacion = '';
   compartirUbicacion(): void {
@@ -101,9 +120,15 @@ export class ViajesPublicos implements OnInit {
     );
   }
   retirarUbicacion(): void { this.localizando = true; this.enviarUbicacion({ compartir: false }); }
-  private enviarUbicacion(body: object): void {
+  private enviarUbicacion(body: { compartir: boolean; latitud?: number; longitud?: number; precision?: number }): void {
     this.http.patch<any>(`${API_URL}/reservas/invitado/ubicacion`, body, { headers: { 'X-Reserva-Token': this.tokenReserva.trim() } }).subscribe({
-      next: data => { this.localizando = false; this.mensajeUbicacion = data.compartiendo ? 'Ubicacion compartida con el chofer. Actualizala si cambias de lugar.' : 'Tu ubicacion fue retirada.'; this.cdr.markForCheck(); },
+      next: data => {
+        this.puntoPasajero = data.compartiendo ? {
+          latitud: Number(data.ubicacion?.latitud ?? body.latitud),
+          longitud: Number(data.ubicacion?.longitud ?? body.longitud),
+          etiqueta: 'Tu ubicacion', tipo: 'pasajero'
+        } : undefined;
+        this.localizando = false; this.mensajeUbicacion = data.compartiendo ? 'Ubicacion compartida con el chofer. Actualizala si cambias de lugar.' : 'Tu ubicacion fue retirada.'; this.cdr.markForCheck(); },
       error: err => { this.localizando = false; this.mensajeUbicacion = err.error?.mensaje || 'No se pudo actualizar la ubicacion.'; this.cdr.markForCheck(); }
     });
   }

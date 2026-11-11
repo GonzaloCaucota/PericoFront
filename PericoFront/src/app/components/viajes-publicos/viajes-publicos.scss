@@ -1,0 +1,6 @@
+
+.trip-card { border-radius: 12px; box-shadow: 0 4px 14px rgba(0, 0, 0, .08); }
+.seat-panel { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; padding: .75rem; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 8px; }
+.seat-list { display: flex; flex-wrap: wrap; gap: .4rem; }
+.seat-chip { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #adb5bd; border-radius: 5px; background: #fff; color: #212529; font-weight: 700; }
+.seat-chip-busy { background: #0d47a1; border-color: #0d47a1; color: #fff; }
