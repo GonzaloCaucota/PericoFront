@@ -117,6 +117,8 @@ autoCtrl.editAuto = async (req, res) => {
       });
     }
 
+    const actual = await Auto.findByPk(req.params.id);
+    if (req.usuario.rol !== 'ADMIN' && actual?.estado === 'INACTIVO') return res.status(403).json({ msg: 'Solo administracion puede modificar un vehiculo deshabilitado.' });
     const [actualizados] = await Auto.update(req.body, {
       where: {
         idAuto: req.params.id
@@ -176,6 +178,7 @@ autoCtrl.changeEstado = async (req, res) => {
             return res.status(403).json({ status: '0', msg: 'No tenes permiso para modificar este auto.' });
         }
 
+        if (req.usuario.rol !== 'ADMIN' && auto.estado === 'INACTIVO') return res.status(403).json({ msg: 'Solo administracion puede rehabilitar este vehiculo.' });
         auto.estado = estado;
         await auto.save(); // Guarda solo el cambio de estado
 

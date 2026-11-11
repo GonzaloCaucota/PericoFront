@@ -7,8 +7,7 @@ import { Auto } from '../../models/auto.model';
 import { Viaje } from '../../models/viaje.model';
 
 export interface CrearViajeDto {
-  origen: string;
-  destino: string;
+  idRecorrido: number;
   fechaSalida: string;
   horaSalida: string;
   tarifaPorAsiento: number;

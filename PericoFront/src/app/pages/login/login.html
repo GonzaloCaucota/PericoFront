@@ -73,6 +73,7 @@
             </button>
           </div>
 
+          @if (googleConfigurado) {
           <div class="col-12 mt-4 fade-in">
             <div class="d-flex align-items-center">
               <hr class="flex-grow-1 text-muted">
@@ -84,6 +85,9 @@
           <div class="col-12 mt-3 fade-in d-flex justify-content-center">
             <div id="contenedorBotonGoogle"></div>
           </div>
+          @if (googleError) { <p class="text-warning" role="alert">{{ googleError }}</p> }
+          }
+          <div class="col-12 mt-3 text-center"><a routerLink="/viajes" class="btn btn-outline-secondary w-100">Continuar como invitado</a></div>
 
         </div>
       </form>

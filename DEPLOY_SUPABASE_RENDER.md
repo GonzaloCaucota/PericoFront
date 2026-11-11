@@ -1,144 +1,108 @@
-# PostgreSQL en Supabase y aplicación en Render
+# Despliegue: Netlify + Render + Supabase
 
-## Arquitectura preparada
+El repositorio completo es `GonzaloCaucota/PericoFront`, rama **WebDeploy**. Angular se publica como sitio estatico en Netlify; Express y Socket.IO en Render; PostgreSQL en Supabase. Se conservan JWT, bcrypt y Google Identity Services propios: no se necesita Supabase Auth ni exponer claves de Supabase al frontend.
 
-Angular → API Express y Socket.IO en Render → PostgreSQL de Supabase mediante Sequelize.
+## 1. Crear PostgreSQL en Supabase
 
-Se conserva la autenticación propia con JWT y bcrypt. No se necesita Supabase Auth ni enviar una service-role key al navegador. Los pagos son exclusivamente en efectivo.
+- Crear un proyecto independiente para TaxiCompartido y guardar su password de base.
+- En **Connect → Session pooler**, copiar la URL PostgreSQL exacta (IPv4, puerto **5432**, usuario `postgres.PROJECT_REF`). Codificar los caracteres especiales de la password en la URL. No usar la URL HTTP del proyecto ni el Transaction pooler en 6543.
+- Activar SSL enforcement. Si el certificado requiere una CA adicional, descargarla del panel y definir `DB_SSL_CA` con el PEM completo o `DB_SSL_CA_FILE` con su ruta secreta. Nunca desactivar la verificacion TLS.
+- Mantener **taxi** fuera de **Exposed schemas** de la Data API. El frontend accede solo a Express. No otorgar permisos a `anon` ni `authenticated`.
 
-La aplicación utiliza el esquema privado `taxi`, fuera de la Data API de Supabase. No añadir `taxi` a **Exposed schemas** ni conceder acceso a `anon` o `authenticated`. Las migraciones revocan los permisos de esos roles si existen. El acceso de usuarios se controla en Express, que se conecta con el usuario de base del servidor. El rol propietario de las tablas sigue siendo privilegiado: guardar su conexión solo en el backend.
+Las siete migraciones crean 14 tablas de dominio, relaciones, restricciones y vistas. Se aplican automaticamente al iniciar el backend y quedan registradas en `taxi.schema_migrations`. No editar SQL ya aplicado ni usar Sequelize sync/force. Las migraciones no copian datos historicos de public ni los datos locales; una base nueva comienza sin usuarios ni viajes. La migracion 004 deja pendientes a los choferes antiguos hasta aprobacion administrativa.
 
-## Tablas y migraciones
+## 2. Reservar el sitio en Netlify
 
-| Tabla | Relación principal |
+Crear un sitio desde GitHub, seleccionar **WebDeploy** y dejar que Netlify lea `netlify.toml` desde la raiz. No cambiar el directorio de publicacion a la raiz del repositorio.
+
+| Campo | Valor |
 | --- | --- |
-| usuarios | Identidad, rol y hash bcrypt |
-| pasajeros | Un perfil por usuario |
-| choferes | Un perfil por usuario |
-| admins | Un perfil por usuario |
-| autos | Capacidad y estado |
-| turnos_chofer | Chofer y auto por fecha y horario |
-| viajes | Chofer y auto obligatorios |
-| reservas | Pasajero y viaje, asientos e importe |
-| auditorias | Cambios sin hashes de contraseña |
+| Base directory | `PericoFront` |
+| Build command | `npm run build` |
+| Publish directory (relativo a base) | `dist/proyfrontendgrupo03/browser` |
+| Node | `22.23.1` |
 
-`taxi.schema_migrations` registra las versiones y sus checksums; no es una tabla del dominio.
+Elegir el nombre del sitio y guardar su origen final HTTPS, por ejemplo `https://taxi-compartido.netlify.app`. Antes del primer build exitoso se necesita API_URL del paso siguiente. Las credenciales se configuran en los paneles de hosting, no en Git.
 
-- `PericoBack/db/migrations/001_initial.sql`: tablas, tipos ENUM, claves y relaciones compatibles con los modelos.
-- `PericoBack/db/migrations/002_constraints_indexes.sql`: CHECK, índices y permisos.
-- `npm run db:migrate`: aplica las migraciones en una transacción con bloqueo para despliegues concurrentes. Repetir el comando no vuelve a aplicar versiones existentes.
-- No editar una migración aplicada: agregar una nueva. El arranque verifica versiones y checksums y nunca ejecuta `sync`, `alter` ni `force`.
+El archivo `PericoFront/public/_redirects` contiene la regla:
 
-Esto inicializa una base nueva. Si ya existen datos en tablas de `public`, permanecen allí y no se copian automáticamente a `taxi`. Antes de cambiar una instancia con datos, realizar backup y preparar una migración de datos específica; no ejecutar DROP ni mover tablas manualmente para eludir un error de migración. Una tabla preexistente en `taxi` sin historial provoca un error en vez de adoptarse silenciosamente.
+```text
+/* /index.html 200
+```
 
-## 1. Crear el proyecto de Supabase
+Angular copia ese archivo al directorio publicado. Es una reescritura con estado 200; permite recargar `/Home`, `/viajes`, `/login`, `/pasajero` y `/admin` sin un 404. Los archivos existentes siguen sirviendose normalmente. `netlify.toml` evita cachear `app-config.js` y permite los popups de Google con Cross-Origin-Opener-Policy.
 
-1. Crear un proyecto y conservar la contraseña de la base en un gestor de secretos.
-2. En **Connect**, copiar la cadena **Session pooler**, puerto `5432`. El usuario suele tener el formato `postgres.PROJECT_REF`; copiar el host y usuario exactos del panel.
-3. Sustituir la contraseña en la URL usando codificación de URL para caracteres especiales. No usar la URL HTTP del proyecto ni una API key como `DATABASE_URL`.
-4. Activar SSL enforcement y descargar el certificado CA desde la configuración SSL de la base cuando sea necesario para verificar su cadena.
-5. Mantener el esquema `taxi` fuera de los esquemas expuestos de la Data API.
+## 3. Crear el backend en Render
 
-Para un servidor persistente se puede usar conexión directa si su red soporta IPv6. El Session pooler es la opción preparada para evitar problemas de IPv4. No usar el puerto `6543` de Transaction pooler en esta configuración.
+Crear un **Blueprint** desde el repositorio, rama **WebDeploy**. `render.yaml` crea solamente la API en plan Free; no crea otro frontend ni una base Render. Alternativamente crear un Web Service con los mismos valores:
 
-La conexión usa TLS con verificación de certificado activada. Si el proveedor ya tiene una CA reconocida, no es necesario un certificado personalizado. Si se necesita, definir `DB_SSL_CA` con el PEM completo o `DB_SSL_CA_FILE` con la ruta de un archivo secreto; no desactivar la verificación. No añadir `sslmode` ni certificados en la URL: la aplicación administra esas opciones de forma explícita.
+| Campo | Valor |
+| --- | --- |
+| Root directory | `PericoBack` |
+| Build | `npm ci --omit=dev` |
+| Start | `npm run db:migrate && npm start` |
+| Health check | `/health` |
+| Node | `22.23.1` |
 
-## 2. Preparar el repositorio
-
-El `render.yaml` de la raíz define dos servicios: backend Node y frontend estático. Subir ambos proyectos, los lockfiles, las migraciones y el Blueprint al repositorio que se conectará con Render. No subir `.env`, certificados privados, contraseñas ni `node_modules`.
-
-El repositorio destino es https://github.com/GonzaloCaucota/PericoFront, rama `WebDeploy`. Esta rama contiene frontend, backend y configuración desde la raíz; seleccionar esa rama al conectar Render.
-
-## 3. Configurar Render
-
-Crear un Blueprint desde el repositorio y revisar el plan/coste de los servicios antes de crearlos. No se creó ningún servicio remoto durante esta preparación.
-
-### Backend: taxi-compartido-api
-
-- Root directory: `PericoBack`
-- Build: `npm ci --omit=dev`
-- Start: `npm run db:migrate && npm start`
-- Health check: `/health`
-- Node: `22.23.1`
-- El servidor escucha en `0.0.0.0` y utiliza el `PORT` asignado por Render.
-
-Variables:
+Variables de Render:
 
 | Variable | Valor |
 | --- | --- |
 | NODE_ENV | `production` |
-| DATABASE_URL | Cadena Session pooler de Supabase |
+| DATABASE_URL | URL del Session pooler de Supabase, incluyendo password |
 | DB_SSL | `true` |
-| DB_SSL_CA | PEM del certificado CA cuando sea necesario; puede dejarse vacío si la cadena ya es confiable |
-| DB_POOL_MAX | `5` por instancia; ajustar al límite de conexiones del proyecto |
-| JWT_SECRET | Generado por el Blueprint; mantenerlo estable entre despliegues y mínimo 32 caracteres |
-| FRONTEND_URL | Origen HTTPS real del frontend, sin ruta; por ejemplo `https://taxi-compartido-web.onrender.com` |
-| GOOGLE_CLIENT_ID | ID público de Google OAuth si se habilita ese login; vacío para omitirlo |
+| DB_SSL_CA | PEM completo si la CA es necesaria; vacio si ya es confiable |
+| DB_POOL_MAX | `5` |
+| JWT_SECRET | Generado por Blueprint; minimo 32 caracteres y estable entre despliegues |
+| FRONTEND_URL | Origen HTTPS de Netlify, sin ruta ni barra final |
+| GOOGLE_CLIENT_ID | El mismo ID OAuth web del frontend |
 
-Las migraciones están en el comando de inicio para no depender de una función de predeploy asociada a un plan particular. El proceso HTTP solo arranca si la base está accesible y las migraciones están al día. Los cambios futuros deben ser compatibles con la instancia anterior durante el despliegue.
+PORT lo proporciona Render; el servidor escucha en 0.0.0.0. Las migraciones deben finalizar antes de servir HTTP. Si fallan TLS, credenciales o checksums, el despliegue se detiene. No usar DB_SSL=false ni rejectUnauthorized=false para eludir errores. `/health` devuelve 200 cuando PostgreSQL responde.
 
-El health check responde `200` si puede consultar PostgreSQL y `503` si no puede. SIGTERM/SIGINT cierran Socket.IO, HTTP y el pool de base.
+Render Free comparte las horas gratuitas del workspace y puede dormir sin trafico. La primera consulta puede demorar al despertar. La aplicacion no instala tareas para mantenerlo despierto. No incluye almacenamiento persistente local.
 
-### Frontend: taxi-compartido-web
+## 4. Configurar y publicar el frontend
 
-- Root directory: `PericoFront`
-- Build: `npm ci && npm run build`
-- Publish: `dist/proyfrontendgrupo03/browser`
-- Rewrite: `/*` a `/index.html` para las rutas de Angular.
-- `API_URL`: origen HTTPS real del backend, sin `/api` ni barra final obligatoria.
-- `GOOGLE_CLIENT_ID`: el mismo ID usado en backend, o vacío.
+En Netlify definir las variables de build:
 
-`prebuild` genera `public/app-config.js` con configuración pública. HTTP, JWT y Socket.IO utilizan ese origen; no quedan servicios apuntando a localhost de forma fija. Cambiar API_URL requiere reconstruir el frontend. El archivo de configuración se sirve sin caché según el Blueprint.
+```text
+API_URL=https://NOMBRE-REAL-API.onrender.com
+GOOGLE_CLIENT_ID=TU-ID.apps.googleusercontent.com
+```
 
-Las URLs finales pueden variar por disponibilidad de nombres: verificar ambos dominios reales y actualizar FRONTEND_URL/API_URL. El CORS del backend acepta únicamente el origen configurado. Si se usa Google, registrar el dominio HTTPS del frontend como origen autorizado en Google Cloud.
+API_URL es el origen del backend, **sin /api**. Netlify instala las dependencias y ejecuta el build. El prebuild genera `public/app-config.js`, que contiene solo configuracion publica. Si falta API_URL o no usa HTTPS, el build en hosting falla para evitar publicar localhost por accidente. Cambiar estas variables requiere otro build.
 
-## 4. Crear el primer administrador
+En Google Cloud agregar el origen HTTPS real de Netlify a **Authorized JavaScript origins** del cliente OAuth. Mantener localhost si se sigue probando localmente. No hace falta enviar el Client Secret al navegador. No usar previews de Netlify para autenticar contra produccion sin configurar expresamente sus origenes en Google y CORS; el backend acepta un unico FRONTEND_URL.
 
-No se incluyen cuentas ni contraseñas predeterminadas. Una vez aplicadas las migraciones, ejecutar desde una terminal segura que tenga la conexión de backend:
+## 5. Crear el primer administrador
+
+El plan Free de Render no tiene shell interactiva. Desde una terminal local segura, crear un archivo **ignorado** `PericoBack/.env.production` con DATABASE_URL, DB_SSL, DB_SSL_CA si corresponde y ADMIN_EMAIL, ADMIN_PASSWORD (minimo 12 caracteres), ADMIN_NOMBRE, ADMIN_APELLIDO y ADMIN_TELEFONO. No reutilizar el administrador local ni subir este archivo.
 
 ```bash
 cd PericoBack
-npm run db:create-admin
+node --env-file=.env.production scripts/create-admin.js
 ```
 
-Definir antes `ADMIN_EMAIL`, `ADMIN_PASSWORD` (mínimo 12 caracteres), `ADMIN_NOMBRE`, `ADMIN_APELLIDO` y `ADMIN_TELEFONO`, además de DATABASE_URL/TLS. Usar un gestor de secretos o variables de entorno, evitando escribir la contraseña en comandos que queden en el historial. El script crea usuario y perfil admin en una transacción y aplica bcrypt. No cambia una cuenta existente y falla ante email duplicado. Retirar las variables ADMIN_* al finalizar. Este script no se ejecuta automáticamente en cada despliegue.
+El script crea usuario y perfil en una transaccion y aplica bcrypt una sola vez. No sobreescribe cuentas existentes. Retirar ADMIN_PASSWORD y los datos temporales despues de crearlo. El admin puede aprobar choferes, bloquear cuentas y vehiculos y gestionar la operacion. Crear viajes reales desde la aplicacion; no se publican fixtures ni credenciales predeterminadas.
 
-## Desarrollo local
+## 6. Comprobaciones del despliegue
 
-Para iniciar PostgreSQL con Docker Compose y probar las migraciones, seguir [PRUEBAS_LOCALES.md](PRUEBAS_LOCALES.md). Los comandos `*:local` usan `.env.local` y no requieren modificar las credenciales del despliegue.
+1. `/health` del backend responde 200 y los logs confirman migraciones aplicadas.
+2. Abrir y recargar `/viajes` y `/login` directamente en Netlify.
+3. Verificar que app-config.js apunta al backend HTTPS y que Google inicia sesion.
+4. Crear/aprobar un chofer, asignar auto y turno, publicar un viaje y comprobar Socket.IO por WSS.
+5. Reservar como invitado con nombre y telefono, consultar el comprobante y cancelar; verificar asientos y cobro en efectivo.
+6. Compartir ubicacion con permiso del navegador, verla en el mapa privado del chofer y retirarla. HTTPS es necesario para geolocalizacion fuera de localhost.
+7. Confirmar que el catalogo publico no expone reservas, contactos ni posiciones y que los pasajeros no acceden al panel admin.
 
-```bash
-nvm use
-cd PericoBack
-# Copiar .env.example a .env y completar credenciales locales.
-# Crear previamente perico_db con el propietario de DB_USER.
-npm ci
-npm run db:migrate
-npm start
-```
+Pruebas locales e instrucciones: [PRUEBAS_LOCALES.md](PRUEBAS_LOCALES.md), [ADMINISTRACION.md](ADMINISTRACION.md), [NORMALIZACION.md](NORMALIZACION.md) y [GOOGLE_LOGIN.md](GOOGLE_LOGIN.md).
 
-En otra terminal:
+Preparar y publicar el codigo no crea los servicios remotos: falta crear los proyectos, configurar sus secretos y verificar los dominios y TLS reales.
 
-```bash
-cd PericoFront
-npm ci
-npm start
-```
+## Referencias oficiales
 
-Para el frontend local, `API_URL` por defecto es `http://localhost:3000`. `GOOGLE_CLIENT_ID` vacío no carga Google Identity. FRONTEND_URL local por defecto es `http://localhost:4200`.
-
-## Validación ejecutada
-
-Se usó PostgreSQL 17 local en una instancia temporal, sin conectar ni modificar Supabase u otra base existente. La prueba `npm run test:db` exige una base local aislada llamada `taxi_integration`, con su URL en `DB_INTEGRATION_URL`. Crea datos de prueba en ella y no debe apuntarse a una base de uso diario.
-
-Se verificaron migraciones repetibles, las nueve tablas mediante consultas de los modelos, ENUM, claves foráneas, CHECK, varios turnos para un mismo chofer/auto, auditoría sin hashes, login HTTP, `/health` y dos reservas simultáneas sobre el último asiento (una aceptada y otra rechazada).
-
-Falta aplicar las migraciones y probar la conexión TLS en el proyecto real de Supabase, así como verificar los dominios, el CORS y la conexión Socket.IO en Render.
-
-## Fuentes oficiales
-
-- [Conexiones PostgreSQL y poolers de Supabase](https://supabase.com/docs/guides/database/connecting-to-postgres)
-- [Verificación SSL con psql](https://supabase.com/docs/guides/database/psql)
-- [Esquemas expuestos en la Data API](https://supabase.com/docs/guides/api/using-custom-schemas)
-- [Blueprints de Render](https://render.com/docs/blueprint-spec)
-- [Health checks de Render](https://render.com/docs/health-checks)
+- https://docs.netlify.com/build/configure-builds/file-based-configuration/
+- https://docs.netlify.com/manage/routing/redirects/rewrites-proxies/
+- https://render.com/docs/blueprint-spec
+- https://render.com/docs/free
+- https://supabase.com/docs/guides/database/connecting-to-postgres

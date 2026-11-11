@@ -12,8 +12,9 @@ const Viaje = sequelize.define('Viaje', {
         primaryKey: true,
         autoIncrement: true
     },
-    origen: {type: DataTypes.STRING, allowNull: false},
-    destino: {type: DataTypes.STRING, allowNull: false},
+    idRecorrido: { type: DataTypes.INTEGER, allowNull: false },
+    origen: { type: DataTypes.VIRTUAL, get() { return this.recorrido?.origen; } },
+    destino: { type: DataTypes.VIRTUAL, get() { return this.recorrido?.destino; } },
     fechaSalida: {type: DataTypes.DATEONLY, allowNull: false}, // Guarda solo YYYY-MM-DD
     horaSalida: { type: DataTypes.TIME, allowNull: false}, // Guarda HH:MM:SS
     tarifaPorAsiento: {type: DataTypes.DECIMAL(10, 2),allowNull: false, validate: { min: 0.01 }},

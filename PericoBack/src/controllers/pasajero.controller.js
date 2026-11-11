@@ -20,6 +20,7 @@ pasajeroCtrl.actualizarPasajero = async (req, res) => {
   if (req.usuario.rol !== 'ADMIN' && ['activo', 'estadoPasajero', 'calificacion', 'cantidadReservas', 'estadoChofer'].some(campo => req.body[campo] !== undefined)) {
     return res.status(403).json({ mensaje: 'Solo administracion puede modificar estos campos' });
   }
+  if (req.body.activo !== undefined || req.body.estadoPasajero !== undefined) return res.status(400).json({ mensaje: 'Usa las acciones administrativas de aprobar, habilitar o bloquear para cambiar el acceso.' });
   const {
     nombre,
     apellido,
@@ -28,7 +29,6 @@ pasajeroCtrl.actualizarPasajero = async (req, res) => {
     activo,
     password,
     calificacion,
-    cantidadReservas,
     estadoPasajero,
   } = req.body;
 
@@ -65,12 +65,12 @@ pasajeroCtrl.actualizarPasajero = async (req, res) => {
     await usuario.save({ transaction });
 
     if (calificacion !== undefined) pasajero.calificacion = calificacion;
-    if (cantidadReservas !== undefined) pasajero.cantidadReservas = cantidadReservas;
     if (estadoPasajero !== undefined) pasajero.estadoPasajero = estadoPasajero;
 
     await pasajero.save({ transaction });
 
     await transaction.commit();
+    if (req.usuario?.rol === 'ADMIN') req.io?.desconectarUsuario?.(usuario.idUsuario);
 
     return res.status(200).json({
       mensaje: 'Pasajero actualizado correctamente',
@@ -142,7 +142,6 @@ pasajeroCtrl.registrarPasajero = async (req, res) => {
     telefono,
     activo,
     calificacion,
-    cantidadReservas,
     estadoPasajero,
   } = req.body;
 
@@ -168,7 +167,6 @@ pasajeroCtrl.registrarPasajero = async (req, res) => {
       {
         idUsuario: usuario.idUsuario,
         calificacion: 0,
-        cantidadReservas: 0,
         estadoPasajero: 'ACTIVO',
       },
       { transaction }

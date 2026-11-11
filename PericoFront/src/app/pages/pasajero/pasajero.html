@@ -21,24 +21,12 @@
 
   <section class="search-panel bg-white border-bottom">
     <div class="row g-3 align-items-end">
-      <div class="col-12 col-md-3">
-        <label class="form-label">Ciudad de origen</label>
-        <select class="form-select" [(ngModel)]="origen">
-          <option *ngFor="let ciudad of ciudades" [value]="ciudad">
-            {{ ciudad }}
-          </option>
+      <div class="col-12 col-md-6">
+        <label for="recorridoPasajero" class="form-label">Recorrido</label>
+        <select id="recorridoPasajero" class="form-select" [(ngModel)]="idRecorrido" (ngModelChange)="viajesDisponibles = []" [disabled]="!recorridos.length">
+          <option *ngFor="let recorrido of recorridos" [ngValue]="recorrido.idRecorrido">{{ recorrido.origen }} → {{ recorrido.destino }}</option>
         </select>
       </div>
-
-      <div class="col-12 col-md-3">
-        <label class="form-label">Destino</label>
-        <select class="form-select" [(ngModel)]="destino">
-          <option *ngFor="let ciudad of ciudades" [value]="ciudad">
-            {{ ciudad }}
-          </option>
-        </select>
-      </div>
-
       <div class="col-12 col-md-3">
         <label class="form-label">Asientos</label>
         <select class="form-select" [(ngModel)]="cantidadAsientos">
@@ -54,12 +42,16 @@
           type="button"
           class="btn btn-primary-custom w-100 search-button"
           (click)="buscarViajes()"
-          [disabled]="origen === destino || buscando"
+          [disabled]="!recorridoSeleccionado || buscando"
         >
           <i class="bi bi-search me-2"></i>
           Buscar
         </button>
       </div>
+    </div>
+    <div class="small mt-3" *ngIf="recorridoSeleccionado as recorrido">
+      <p class="mb-1"><strong>Salida:</strong> {{ recorrido.paradaOrigen.nombre }} <span *ngIf="!recorrido.paradaOrigen.ubicacionConfirmada">(referencia aproximada)</span></p>
+      <p class="mb-0"><strong>Llegada:</strong> {{ recorrido.paradaDestino.nombre }} <span *ngIf="!recorrido.paradaDestino.ubicacionConfirmada">(referencia aproximada)</span></p>
     </div>
   </section>
 
@@ -252,12 +244,12 @@
             <div class="trip-route border-top border-bottom py-3 my-3">
               <div>
                 <span class="trip-label">Origen</span>
-                <p class="mb-2">{{ viaje.origen }}</p>
+                <p class="mb-2">{{ viaje.origen }}<br><small>{{ viaje.recorrido?.paradaOrigen?.nombre }}</small></p>
               </div>
 
               <div>
                 <span class="trip-label">Destino</span>
-                <p class="mb-0">{{ viaje.destino }}</p>
+                <p class="mb-0">{{ viaje.destino }}<br><small>{{ viaje.recorrido?.paradaDestino?.nombre }}</small></p>
               </div>
             </div>
 

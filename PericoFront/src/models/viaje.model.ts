@@ -1,5 +1,8 @@
+import { Recorrido } from './recorrido.model';
 export interface Viaje {
   idViaje: number;
+  idRecorrido: number;
+  recorrido?: Recorrido;
   origen: string;
   destino: string;
   fechaSalida: Date;

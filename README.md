@@ -7,7 +7,10 @@ Este repositorio reúne el proyecto completo en la rama `WebDeploy`:
 - `PericoFront/`: frontend Angular y configuración pública de la API.
 - `PericoBack/`: API, modelos Sequelize, migraciones y pruebas.
 - `compose.yaml`: PostgreSQL local, pgAdmin y base descartable de integración.
-- `render.yaml`: servicios de backend y frontend para Render, con PostgreSQL en Supabase.
+- `render.yaml`: backend en Render Free, conectado a PostgreSQL en Supabase.
+- `netlify.toml`: frontend Angular en Netlify; fallback de rutas en `PericoFront/public/_redirects`.
+
+Guía de despliegue: [Netlify + Render + Supabase](DEPLOY_SUPABASE_RENDER.md).
 
 ## Desarrollo local
 
@@ -55,3 +58,11 @@ La prueba PostgreSQL utiliza una base aislada y crea datos de prueba en ella. Pa
 ```bash
 docker compose --profile test down
 ```
+
+## Recorridos
+
+Se incluyen San Salvador de Jujuy ↔ Perico y San Salvador de Jujuy ↔ El Carmen. El catálogo de ciudades, paradas y recorridos está normalizado; ver [NORMALIZACION.md](NORMALIZACION.md) para migración y contrato de API.
+
+## Administración
+
+Los choferes requieren aprobación de un administrador antes de operar. El panel permite altas y bloqueos de choferes, pasajeros y vehículos. Ver [ADMINISTRACION.md](ADMINISTRACION.md).

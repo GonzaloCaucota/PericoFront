@@ -1,5 +1,6 @@
 export interface Reserva {
   idReserva: number;
+  invitado?: { nombre: string; telefono: string; latitud?: number; longitud?: number; precision?: number; ubicacionActualizadaAt?: string };
   cantidadAsientos: number;
   fechaReserva: Date;
   importeTotal: number;

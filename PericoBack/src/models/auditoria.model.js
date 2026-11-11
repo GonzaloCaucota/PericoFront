@@ -8,6 +8,7 @@ const Auditoria = sequelize.define('Auditoria', {
   registroId: {type: DataTypes.STRING,allowNull: false },
   valoresAnteriores: {type: DataTypes.JSON,allowNull: true },
   valoresNuevos: {type: DataTypes.JSON,allowNull: true },
+  idUsuarioResponsable: { type: DataTypes.INTEGER, allowNull: true },
   usuarioResponsable: {type: DataTypes.STRING,allowNull: true 
   }
 }, {

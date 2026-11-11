@@ -7,7 +7,6 @@ export interface Pasajero {
   idPasajero: number;
   idUsuario: number;
   calificacion: Decimal;
-  cantidadReservas: number;
   estadoPasajero: 'ACTIVO' | 'SUSPENDIDO' | 'BLOQUEADO' | 'ELIMINADO';
   latitud?: Decimal | null;
   longitud?: Decimal | null;

@@ -31,6 +31,7 @@ test('rechaza asientos negativos antes de consultar el viaje', async (t) => {
   assert.equal(rollback, true);
 });
 test('calcula el precio y estado en servidor aunque el cliente los manipule', async (t) => {
+  t.mock.method(require('../src/services/cuenta-habilitada'), 'choferAprobado', async () => true);
   t.mock.method(models.sequelize, 'transaction', async () => ({ commit: async () => {}, rollback: async () => {} }));
   t.mock.method(models.Pasajero, 'findByPk', async () => ({ idPasajero: 3, idUsuario: 1, estadoPasajero: 'ACTIVO' }));
   t.mock.method(models.Viaje, 'findByPk', async () => ({ idViaje: 2, estadoViaje: 'ABIERTO', asientosDisponibles: 4, tarifaPorAsiento: '1500.00', save: async () => {} }));

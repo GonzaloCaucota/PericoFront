@@ -7,6 +7,7 @@ export const routes: Routes = [
     { path: '', redirectTo: 'Home', pathMatch: 'full' },
     
     { path: 'Home', component: Home },
+    { path: 'viajes', loadComponent: () => import('./components/viajes-publicos/viajes-publicos').then(m => m.ViajesPublicos) },
     
     { path: 'registro', loadComponent: () => import('./pages/registrar-usuario/registrar-usuario').then(m => m.RegistrarUsuario) },
 

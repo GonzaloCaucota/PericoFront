@@ -6,6 +6,7 @@ export type Decimal = number | string;
 
 export interface ChoferModel {
   idChofer: number;
+  habilitacion?: { estado: 'PENDIENTE' | 'APROBADO' | 'RECHAZADO'; idAdmin: number | null; fechaDecision: string | null };
   idUsuario: number;
   licenciaConducir: string;
   estadoChofer: 'DISPONIBLE' | 'EN_VIAJE' | 'DESCANSO' | 'SUSPENDIDO' | 'INACTIVO' | 'ELIMINADO';

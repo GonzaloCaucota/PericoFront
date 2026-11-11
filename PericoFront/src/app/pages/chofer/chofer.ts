@@ -1,3 +1,5 @@
+import { RecorridoService } from '../../services/recorrido.service';
+import { Recorrido } from '../../../models/recorrido.model';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -55,9 +57,10 @@ export class Chofer implements OnInit {
   public mostrarHistorial = false;
   public reserva: Reserva | null = null;
 
-  public ciudades = ['San Salvador de Jujuy', 'Perico'];
-  public nuevoOrigen = 'Perico';
-  public nuevoDestino = 'San Salvador de Jujuy';
+  public recorridos: Recorrido[] = [];
+  public idRecorrido: number | null = null;
+  public errorRecorridos = '';
+  public tarifaPorAsiento = 1000;
 
   public idChofer = this.getIdChoferSesion();
 
@@ -75,12 +78,17 @@ export class Chofer implements OnInit {
   private eventosEscuchados = new Set<string>();
 
   constructor(
+    private _recorridoService: RecorridoService,
     private _choferService: ChoferService,
     private _geolocationService: GeolocationService,
     private _changeDetectorRef: ChangeDetectorRef,
     private _socketService: SocketService,
     private _toastr: ToastrService
   ) {}
+
+  get invitadosConUbicacion(): any[] {
+    return (this.viajeActual?.reservas || []).filter((r: any) => ['PENDIENTE', 'CONFIRMADA'].includes(r.estadoReserva) && r.invitado?.latitud != null && r.invitado?.longitud != null);
+  }
 
   get reservasPendientesPago(): any[] {
     // Alimenta la lista "Cobros pendientes" del HTML.
@@ -91,7 +99,19 @@ export class Chofer implements OnInit {
     );
   }
 
+  get recorridoSeleccionado(): Recorrido | undefined {
+    return this.recorridos.find(recorrido => recorrido.idRecorrido === Number(this.idRecorrido));
+  }
+
   ngOnInit(): void {
+    this._recorridoService.listar().subscribe({
+      next: recorridos => {
+        this.recorridos = recorridos;
+        this.idRecorrido = recorridos.find(r => r.codigo === 'SSJ_PERICO')?.idRecorrido ?? recorridos[0]?.idRecorrido ?? null;
+        this._changeDetectorRef.detectChanges();
+      },
+      error: () => { this.errorRecorridos = 'No se pudieron cargar los recorridos. Recarga la pagina para reintentar.'; this._changeDetectorRef.detectChanges(); }
+    });
     if (!this.idChofer) {
       console.error('No hay idChofer en sesion');
       this.resolverChoferDesdeUsuarioSesion();
@@ -385,7 +405,8 @@ export class Chofer implements OnInit {
   get puedeCrearViaje(): boolean {
     return (
       this.autoAsignado !== undefined &&
-      this.nuevoOrigen !== this.nuevoDestino &&
+      this.recorridoSeleccionado !== undefined &&
+      this.tarifaPorAsiento > 0 &&
       !this.viajeActual
     );
   }
@@ -421,19 +442,17 @@ export class Chofer implements OnInit {
       return;
     }
 
-    if (this.nuevoOrigen === this.nuevoDestino) {
-      console.error('El origen y destino no pueden ser iguales');
-      this._toastr.warning('El origen y el destino no pueden ser iguales.');
+    if (!this.recorridoSeleccionado || !Number.isFinite(this.tarifaPorAsiento) || this.tarifaPorAsiento <= 0) {
+      this._toastr.warning('Selecciona un recorrido y una tarifa positiva.');
       return;
     }
 
     // El backend completa estado ABIERTO y asientos segun la capacidad del auto.
     const nuevoViaje: CrearViajeDto = {
-      origen: this.nuevoOrigen,
-      destino: this.nuevoDestino,
+      idRecorrido: this.recorridoSeleccionado.idRecorrido,
       fechaSalida: this.getFechaActual(),
       horaSalida: this.getHoraActual(),
-      tarifaPorAsiento: 1000,
+      tarifaPorAsiento: this.tarifaPorAsiento,
       idChofer: this.idChofer,
       idAuto: this.autoAsignado.idAuto
     };
@@ -449,22 +468,6 @@ export class Chofer implements OnInit {
         console.error('Error al crear nuevo viaje:', err);
       }
     });
-  }
-
-  onOrigenChange(origen: string): void {
-    this.nuevoOrigen = origen;
-
-    if (this.nuevoDestino === origen) {
-      this.nuevoDestino = this.getCiudadAlternativa(origen);
-    }
-  }
-
-  onDestinoChange(destino: string): void {
-    this.nuevoDestino = destino;
-
-    if (this.nuevoOrigen === destino) {
-      this.nuevoOrigen = this.getCiudadAlternativa(destino);
-    }
   }
 
   iniciarViaje(): void {
@@ -714,10 +717,6 @@ export class Chofer implements OnInit {
     return (auto.estado || auto.estadoAuto) === 'DISPONIBLE';
   }
 
-  private getCiudadAlternativa(ciudad: string): string {
-    return this.ciudades.find((item) => item !== ciudad) || ciudad;
-  }
-
   private getIdChoferSesion(): number {
     const sesion = sessionStorage.getItem('usuarioSesion');
 
@@ -812,6 +811,8 @@ export class Chofer implements OnInit {
     const idViaje = this.viajeActual?.idViaje;
 
     if (!idViaje) return;
+
+    this.escucharEvento<any>(`ubicacion_invitado_viaje_${idViaje}`, () => this.loadViajes());
 
     // Eventos especificos por idViaje para que varios choferes no mezclen actualizaciones.
     this.escucharEvento<any>(`reserva_creada_viaje_${idViaje}`, (data) => {

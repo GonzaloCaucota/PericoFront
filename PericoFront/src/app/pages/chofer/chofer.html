@@ -24,24 +24,16 @@
 
       <div class="new-trip-form mx-auto">
         <div class="row g-3 align-items-end">
-          <div class="col-12 col-md-4">
-            <label class="form-label text-start w-100">Origen</label>
-            <select class="form-select" [(ngModel)]="nuevoOrigen" (ngModelChange)="onOrigenChange($event)">
-              <option *ngFor="let ciudad of ciudades" [value]="ciudad">
-                {{ ciudad }}
-              </option>
+          <div class="col-12 col-md-6">
+            <label for="recorridoChofer" class="form-label text-start w-100">Recorrido</label>
+            <select id="recorridoChofer" class="form-select" [(ngModel)]="idRecorrido" [disabled]="!recorridos.length">
+              <option *ngFor="let recorrido of recorridos" [ngValue]="recorrido.idRecorrido">{{ recorrido.origen }} → {{ recorrido.destino }}</option>
             </select>
           </div>
-
-          <div class="col-12 col-md-4">
-            <label class="form-label text-start w-100">Destino</label>
-            <select class="form-select" [(ngModel)]="nuevoDestino" (ngModelChange)="onDestinoChange($event)">
-              <option *ngFor="let ciudad of ciudades" [value]="ciudad">
-                {{ ciudad }}
-              </option>
-            </select>
+          <div class="col-12 col-md-2">
+            <label for="tarifaViaje" class="form-label">Tarifa por asiento</label>
+            <input id="tarifaViaje" type="number" min="0.01" step="0.01" class="form-control" [(ngModel)]="tarifaPorAsiento">
           </div>
-
           <div class="col-12 col-md-4">
             <button
               type="button"
@@ -53,6 +45,11 @@
               Crear Nuevo Viaje
             </button>
           </div>
+        </div>
+        <p class="text-danger mt-2" role="alert" *ngIf="errorRecorridos">{{ errorRecorridos }}</p>
+        <div class="text-start small mt-3" *ngIf="recorridoSeleccionado as recorrido">
+          <p class="mb-1"><strong>Salida:</strong> {{ recorrido.paradaOrigen.nombre }} <span *ngIf="!recorrido.paradaOrigen.ubicacionConfirmada">(referencia aproximada)</span></p>
+          <p class="mb-0"><strong>Llegada:</strong> {{ recorrido.paradaDestino.nombre }} <span *ngIf="!recorrido.paradaDestino.ubicacionConfirmada">(referencia aproximada)</span></p>
         </div>
       </div>
     </div>
@@ -81,6 +78,7 @@
               <div>
                 <span class="route-label d-block text-uppercase text-secondary fw-semibold">Origen</span>
                 <p class="route-text mb-0">{{ viajeActual.origen }}</p>
+                <small>{{ viajeActual.recorrido?.paradaOrigen?.nombre }}</small>
               </div>
             </div>
 
@@ -93,6 +91,7 @@
               <div>
                 <span class="route-label d-block text-uppercase text-secondary fw-semibold">Destino</span>
                 <p class="route-text mb-0">{{ viajeActual.destino }}</p>
+                <small>{{ viajeActual.recorrido?.paradaDestino?.nombre }}</small>
               </div>
             </div>
           </div>
@@ -152,6 +151,15 @@
               </button>
             </div>
 
+            <section *ngIf="invitadosConUbicacion.length" class="mt-3">
+              <h6>Ubicacion de pasajeros invitados</h6>
+              <div *ngFor="let r of invitadosConUbicacion" class="mb-3">
+                <p class="mb-1">{{ r.invitado.nombre }} · Reserva #{{ r.idReserva }}</p>
+                <small>Actualizada: {{ r.invitado.ubicacionActualizadaAt | date:'short' }} · precision {{ r.invitado.precision }} m</small>
+                <app-mapa-ruta [idMapa]="'invitado-' + r.idReserva" [pasajero]="{ latitud: +r.invitado.latitud, longitud: +r.invitado.longitud, etiqueta: r.invitado.nombre, tipo: 'pasajero' }" />
+              </div>
+            </section>
+
             <div class="payment-list mt-3 pt-3 border-top" *ngIf="reservasPendientesPago.length > 0">
               <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
                 <h6 class="mb-0 fw-semibold">
@@ -164,6 +172,7 @@
               <div class="payment-row" *ngFor="let reservaPendiente of reservasPendientesPago">
                 <div>
                   <div class="fw-semibold">Reserva #{{ reservaPendiente.idReserva }}</div>
+                  <p *ngIf="reservaPendiente.invitado" class="mb-1">{{ reservaPendiente.invitado.nombre }} · {{ reservaPendiente.invitado.telefono }} (invitado)</p>
                   <small class="text-muted">
                     {{ reservaPendiente.cantidadAsientos }} asiento(s) · {{ reservaPendiente.estadoPago }}
                   </small>

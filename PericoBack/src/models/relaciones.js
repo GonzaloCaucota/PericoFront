@@ -13,6 +13,40 @@ const TurnoChofer = require('./turnoChofer.js');
 const Viaje = require('./viaje.model');
 const Reserva = require('./reserva.model');
 const Auditoria = require('./auditoria.model');
+const Invitado = require('./invitado.model');
+Reserva.belongsTo(Invitado, { foreignKey: 'idInvitado', as: 'invitado', onDelete: 'RESTRICT' });
+Invitado.hasOne(Reserva, { foreignKey: 'idInvitado', as: 'reserva' });
+Reserva.afterUpdate(async (reserva, options) => {
+  if (reserva.idInvitado && ['CANCELADA', 'UTILIZADA', 'NO_PRESENTADO'].includes(reserva.estadoReserva)) {
+    await Invitado.update({ latitud: null, longitud: null, precision: null, ubicacionActualizadaAt: null }, { where: { idInvitado: reserva.idInvitado }, transaction: options.transaction });
+  }
+});
+
+Auditoria.belongsTo(Usuario, { foreignKey: 'idUsuarioResponsable', as: 'responsable', onDelete: 'SET NULL' });
+
+const HabilitacionChofer = require('./habilitacionChofer.model');
+Chofer.hasOne(HabilitacionChofer, { foreignKey: 'idChofer', as: 'habilitacion' });
+HabilitacionChofer.belongsTo(Chofer, { foreignKey: 'idChofer', as: 'chofer' });
+HabilitacionChofer.belongsTo(Admin, { foreignKey: 'idAdmin', as: 'administrador' });
+Chofer.afterCreate(async (chofer, options) => {
+  await HabilitacionChofer.create({ idChofer: chofer.idChofer }, { transaction: options.transaction });
+});
+
+const Ciudad = require('./ciudad.model');
+const Parada = require('./parada.model');
+const Recorrido = require('./recorrido.model');
+Ciudad.hasMany(Parada, { foreignKey: 'idCiudad', as: 'paradas' });
+Parada.belongsTo(Ciudad, { foreignKey: 'idCiudad', as: 'ciudad' });
+Recorrido.belongsTo(Parada, { foreignKey: 'idParadaOrigen', as: 'paradaOrigen' });
+Recorrido.belongsTo(Parada, { foreignKey: 'idParadaDestino', as: 'paradaDestino' });
+Viaje.belongsTo(Recorrido, { foreignKey: 'idRecorrido', as: 'recorrido' });
+Recorrido.hasMany(Viaje, { foreignKey: 'idRecorrido', as: 'viajes' });
+const paradasRecorrido = [
+  { association: 'paradaOrigen', include: ['ciudad'] },
+  { association: 'paradaDestino', include: ['ciudad'] },
+];
+Recorrido.addScope('defaultScope', { include: paradasRecorrido }, { override: true });
+Viaje.addScope('defaultScope', { include: [{ association: 'recorrido', include: paradasRecorrido }] }, { override: true });
 
 // ---------------------------------------------------------------------------
 // Usuario y perfiles
@@ -163,15 +197,18 @@ const registrarLog = async (accion, instance, options) => {
   try {
     const sinSecretos = (datos) => {
       if (!datos) return null;
-      const { passwordHash, ...resto } = datos;
+      const { passwordHash, tokenHash, ...resto } = datos;
+      if (instance.constructor.name === 'Invitado') {
+        delete resto.latitud; delete resto.longitud; delete resto.precision; delete resto.ubicacionActualizadaAt;
+      }
       return resto;
     };
-    const tablaAfectada = instance.constructor.name; 
+    const tablaAfectada = instance.constructor.name;
 
     if (tablaAfectada === 'Auditoria') return; // Evitamos el bucle infinito ignorando la propia tabla de auditoría
 
     // Captura Del ID dinámicamente dependiendo del modelo que se afectó
-    const registroId = instance.id || instance.idReserva || instance.idUsuario || instance.idPasajero || instance.idChofer || instance.idAuto || 'N/A';
+    const registroId = instance.get(instance.constructor.primaryKeyAttribute) ?? 'N/A';
 
     await Auditoria.create({
       tablaAfectada,
@@ -179,7 +216,8 @@ const registrarLog = async (accion, instance, options) => {
       registroId: registroId.toString(),
       valoresAnteriores: accion !== 'CREATE' ? sinSecretos(instance._previousDataValues) : null,
       valoresNuevos: accion !== 'DELETE' ? sinSecretos(instance.dataValues) : null,
-      usuarioResponsable: options.usuarioResponsable || 'Sistema/Anonimo' 
+      idUsuarioResponsable: require('../services/request-context').getStore()?.idUsuario || null,
+      usuarioResponsable: require('../services/request-context').getStore()?.idUsuario ? `Usuario #${require('../services/request-context').getStore().idUsuario}` : (options.usuarioResponsable || 'Sistema/Anonimo')
     }, { transaction: options.transaction });
   } catch (error) {
     console.error('Error en Hook de Auditoría:', error.message);
@@ -201,4 +239,9 @@ module.exports = {
   Viaje,
   Reserva,
   Auditoria,
+  Ciudad,
+  Parada,
+  Recorrido,
+  HabilitacionChofer,
+  Invitado,
 };

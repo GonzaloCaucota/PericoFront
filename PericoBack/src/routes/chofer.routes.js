@@ -9,6 +9,8 @@ router.get('/', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN'), choferCtrl
 router.post('/', choferCtrl.registrarChofer);
 
 // Frontend: trae datos completos del chofer.
+router.get('/:idChofer/estadisticas', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN', 'CHOFER'), propietario, require('../controllers/estadisticas.controller').obtener('choferes'));
+
 router.get('/:idChofer', authCtrl.verifyToken, propietario, choferCtrl.obtenerChoferPorId);
 
 // Frontend: cambia el estado del chofer (DISPONIBLE, DESCANSO, EN_VIAJE, etc.).

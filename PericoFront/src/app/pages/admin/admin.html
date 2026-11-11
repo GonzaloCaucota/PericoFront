@@ -24,6 +24,9 @@
         <i class="bi bi-car-front-fill"></i> Gestionar Choferes
       </button>
 
+      <button class="btn btn-light text-start" (click)="cambiarVista('alta-usuario')">Dar de alta chofer / pasajero</button>
+      <button class="btn btn-light text-start" (click)="cambiarVista('autos')">Gestionar vehículos</button>
+
       <button class="btn w-100 text-start d-flex align-items-center gap-2 py-2.5 px-3 rounded-3 transition mt-auto"
               [ngClass]="vistaActual === 'registrar-admin' ? 'bg-white text-primary fw-bold shadow-sm' : 'btn-link text-white text-opacity-75 text-decoration-none hover-light'"
               (click)="cambiarVista('registrar-admin')">
@@ -33,6 +36,12 @@
 
     <main class="col-12 col-md-9 col-xl-10 bg-light p-4 p-lg-5">
       
+      @if (mensajeModeracion) { <div class="alert alert-success" role="status">{{ mensajeModeracion }}</div> }
+      @if (errorModeracion) { <div class="alert alert-danger" role="alert">{{ errorModeracion }}</div> }
+      @if (vistaActual === 'pasajeros' || vistaActual === 'choferes' || vistaActual === 'autos') {
+        <div class="mb-3"><label for="motivoModeracion" class="form-label">Motivo del bloqueo</label>
+        <input id="motivoModeracion" class="form-control" [(ngModel)]="motivoModeracion" placeholder="Obligatorio para bloquear, mínimo 5 caracteres"></div>
+      }
       @if (vistaActual === 'dashboard') {
         <app-admin-dashboard class="fade-in"></app-admin-dashboard>
       }
@@ -84,14 +93,23 @@
                             <div class="small text-muted"><i class="bi bi-telephone"></i> {{ item.usuario?.telefono }}</div>
                           </td>
                           <td>
-                            <span class="badge" [ngClass]="(item.estadoPasajero === 'ACTIVO' || item.estadoChofer === 'APROBADO') ? 'bg-success' : 'bg-warning text-dark'">
-                              {{ vistaActual === 'pasajeros' ? item.estadoPasajero : item.estadoChofer }}
+                            <span class="badge" [ngClass]="(item.usuario?.activo && (item.estadoPasajero === 'ACTIVO' || item.habilitacion?.estado === 'APROBADO')) ? 'bg-success' : 'bg-warning text-dark'">
+                              {{ vistaActual === 'pasajeros' ? item.estadoPasajero : (item.habilitacion?.estado !== 'APROBADO' ? 'PENDIENTE DE ALTA' : item.estadoChofer) }}
                             </span>
                           </td>
                           <td>
                             <i class="bi bi-star-fill text-warning"></i> {{ item.calificacion || '0.0' }}
                           </td>
                           <td class="text-end">
+                            @if (vistaActual === 'choferes' && (item.habilitacion?.estado !== 'APROBADO' || !item.usuario?.activo)) {
+                              <button class="btn btn-sm btn-success me-2" [disabled]="procesandoModeracion" (click)="moderar(item, 'aprobar')">{{ item.habilitacion?.estado === 'APROBADO' ? 'Rehabilitar' : 'Aprobar alta' }}</button>
+                            }
+                            @if (vistaActual === 'pasajeros' && (!item.usuario?.activo || item.estadoPasajero !== 'ACTIVO')) {
+                              <button class="btn btn-sm btn-success me-2" [disabled]="procesandoModeracion" (click)="moderar(item, 'activar')">Habilitar</button>
+                            }
+                            @if (item.usuario?.activo) {
+                              <button class="btn btn-sm btn-outline-danger me-2" [disabled]="procesandoModeracion" (click)="moderar(item, 'bloquear')">Bloquear</button>
+                            }
                             <button class="btn btn-sm btn-outline-primary px-3 rounded-pill" (click)="abrirEdicion(item)">
                               <i class="bi bi-pencil-square"></i> Editar
                             </button>
@@ -142,22 +160,9 @@
                     </div>
 
                     <div class="col-12 col-md-6">
-                      <label class="form-label fw-semibold text-secondary small">Estado del Perfil</label>
-                      <select class="form-select" formControlName="estado">
-                        @if (vistaActual === 'pasajeros') {
-                          <option value="ACTIVO">ACTIVO</option>
-                          <option value="SUSPENDIDO">SUSPENDIDO</option>
-                          <option value="BLOQUEADO">BLOQUEADO</option>
-                          <option value="ELIMINADO">ELIMINADO</option>
-                        } @else {
-                          <option value="DISPONIBLE">DISPONIBLE</option>
-                          <option value="EN_VIAJE">EN_VIAJE</option>
-                          <option value="DESCANSO">DESCANSO</option>
-                          <option value="SUSPENDIDO">SUSPENDIDO</option>
-                          <option value="INACTIVO">INACTIVO</option>
-                          <option value="ELIMINADO">ELIMINADO</option>
-                        }
-                      </select>
+                      <label class="form-label fw-semibold text-secondary small">Estado del perfil</label>
+                      <p>{{ vistaActual === 'pasajeros' ? usuarioEncontrado?.estadoPasajero : usuarioEncontrado?.estadoChofer }}</p>
+                      <small class="text-muted">Usa las acciones de aprobar, habilitar o bloquear en el directorio.</small>
                     </div>
                     <div class="col-12 col-md-6">
                       <label class="form-label fw-semibold text-secondary small text-danger">
@@ -197,6 +202,33 @@
             
           }
         </div>
+      }
+
+      @if (vistaActual === 'alta-usuario') {
+        <section class="card p-4"><h2>Alta de chofer o pasajero</h2><p>Los choferes creados aquí quedan aprobados por el administrador de esta sesión.</p>
+          <form [formGroup]="altaForm" (ngSubmit)="darAlta()" class="row g-3">
+            <div class="col-md-6"><label for="altaTipo" class="form-label">Tipo</label><select id="altaTipo" class="form-select" formControlName="tipo"><option value="CHOFER">Chofer</option><option value="PASAJERO">Pasajero</option></select></div>
+            <div class="col-md-6"><label for="altaNombre" class="form-label">Nombre</label><input id="altaNombre" class="form-control" formControlName="nombre"></div>
+            <div class="col-md-6"><label for="altaApellido" class="form-label">Apellido</label><input id="altaApellido" class="form-control" formControlName="apellido"></div>
+            <div class="col-md-6"><label for="altaEmail" class="form-label">Email</label><input id="altaEmail" type="email" class="form-control" formControlName="email"></div>
+            <div class="col-md-6"><label for="altaTelefono" class="form-label">Teléfono</label><input id="altaTelefono" class="form-control" formControlName="telefono"></div>
+            <div class="col-md-6"><label for="altaPassword" class="form-label">Contraseña inicial, mínimo 12 caracteres</label><input id="altaPassword" type="password" autocomplete="new-password" class="form-control" formControlName="passwordHash"></div>
+            @if (altaForm.value.tipo === 'CHOFER') {
+              <div class="col-md-6"><label for="altaLicencia" class="form-label">Licencia</label><input id="altaLicencia" class="form-control" formControlName="licenciaConducir"></div>
+              <div class="col-md-6"><label for="altaFecha" class="form-label">Fecha de habilitación</label><input id="altaFecha" type="date" class="form-control" formControlName="fechaHabilitacion"></div>
+            }
+            <div class="col-12"><button class="btn btn-primary" [disabled]="altaForm.invalid || procesandoModeracion">Dar de alta</button></div>
+          </form>
+        </section>
+      }
+      @if (vistaActual === 'autos') {
+        <section class="card p-4"><h2>Vehículos</h2><p>Al deshabilitar un vehículo se cancelan sus viajes activos. El chofer no podrá rehabilitarlo por su cuenta.</p>
+          <div class="table-responsive"><table class="table"><thead><tr><th>Patente</th><th>Vehículo</th><th>Estado</th><th>Acción</th></tr></thead><tbody>
+          @for (auto of listaAutos; track auto.idAuto) {
+            <tr><td>{{ auto.patente }}</td><td>{{ auto.marca }} {{ auto.modelo }}</td><td>{{ auto.estado }}</td><td><button class="btn btn-sm btn-outline-danger" [disabled]="procesandoModeracion" (click)="cambiarHabilitacionAuto(auto)">{{ auto.estado === 'INACTIVO' ? 'Habilitar' : 'Deshabilitar' }}</button></td></tr>
+          }
+          </tbody></table></div>
+        </section>
       }
 
       @if (vistaActual === 'registrar-admin') {

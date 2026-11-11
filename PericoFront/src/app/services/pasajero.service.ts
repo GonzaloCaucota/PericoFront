@@ -33,11 +33,10 @@ export class PasajeroService {
     return this._http.get<ChoferModel>(`${this.baseUrl}/choferes/${idChofer}`);
   }
 
-  getViajesDisponibles(origen: string, destino: string): Observable<Viaje[]> {
+  getViajesDisponibles(idRecorrido: number): Observable<Viaje[]> {
     // El backend filtra por origen, destino, estado de viaje y asientos disponibles.
     const params = new HttpParams()
-      .set('origen', origen)
-      .set('destino', destino);
+      .set('idRecorrido', idRecorrido);
 
     return this._http.get<Viaje[]>(`${this.baseUrl}/viajes/disponibles`, {
       params

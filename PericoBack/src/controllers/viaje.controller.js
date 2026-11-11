@@ -1,11 +1,12 @@
 const { Op } = require('sequelize');
-const Viaje = require('./../../src/models/viaje.model'); 
-const Auto = require('./../../src/models/auto.model'); 
-const Chofer = require('./../../src/models/chofer.model'); 
+const Viaje = require('./../../src/models/viaje.model');
+const Auto = require('./../../src/models/auto.model');
+const Chofer = require('./../../src/models/chofer.model');
 const Reserva = require('./../../src/models/reserva.model');
 const Usuario = require('./../../src/models/usuario.model');
 const TurnoChofer = require('./../../src/models/turnoChofer');
 
+const { Recorrido } = require('../models/relaciones');
 const viajeCtrl = {};
 
 const protegerReservas = async (req, viajes) => {
@@ -44,7 +45,7 @@ const validarAutoDelChofer = async (req, idChofer, idAuto) => {
     return Boolean(turno);
 };
 
-// Obtener TODOS los viajes con todas sus relaciones 
+// Obtener TODOS los viajes con todas sus relaciones
 viajeCtrl.getViajes = async (req, res) => {
     /*
       #swagger.tags = ['Viajes']
@@ -55,7 +56,7 @@ viajeCtrl.getViajes = async (req, res) => {
     */
     try {
         const viajes = await Viaje.findAll({
-            include: ['chofer', 'auto', 'reservas'] 
+            include: ['chofer', 'auto', { association: 'reservas', include: ['invitado'] }]
         });
         res.json(await protegerReservas(req, viajes));
     } catch (error) {
@@ -63,7 +64,7 @@ viajeCtrl.getViajes = async (req, res) => {
     }
 };
 
-// Obtener un viaje específico 
+// Obtener un viaje específico
 viajeCtrl.getViaje = async (req, res) => {
     /*
       #swagger.tags = ['Viajes']
@@ -75,7 +76,7 @@ viajeCtrl.getViaje = async (req, res) => {
     */
     try {
         const viaje = await Viaje.findByPk(req.params.id, {
-            include: ['chofer', 'auto', 'reservas'] 
+            include: ['chofer', 'auto', { association: 'reservas', include: ['invitado'] }]
         });
         if (!viaje) {
             return res.status(404).json({ status: '0', msg: 'Viaje no encontrado.' });
@@ -86,109 +87,71 @@ viajeCtrl.getViaje = async (req, res) => {
     }
 };
 
-// Buscar viajes abiertos por origen y destino, mostrando solo los que tienen asientos.
-/*viajeCtrl.getViajesDisponibles = async (req, res) => {
-    try {
-        const { origen, destino } = req.query;
-
-        if (!origen || !destino) {
-            return res.status(400).json({ status: '0', msg: 'Debe enviar origen y destino.' });
-        }
-
-        const viajes = await Viaje.findAll({
-            where: {
-                origen,
-                destino,
-                estadoViaje: 'ABIERTO',
-                asientosDisponibles: {
-                    [Op.gt]: 0
-                }
-            },
-            include: ['chofer', 'auto', 'reservas', 'usuario'],
-            order: [['fechaSalida', 'ASC'], ['horaSalida', 'ASC']]
-        });
-
-        return res.status(200).json(await protegerReservas(req, viajes));
-    } catch (error) {
-        return res.status(500).json({ status: '0', msg: 'Error al buscar viajes disponibles.' });
-    }
-};*/
-
+// La busqueda usa una FK del catalogo en vez de nombres escritos libremente.
 viajeCtrl.getViajesDisponibles = async (req, res) => {
     /*
       #swagger.tags = ['Viajes']
-      #swagger.summary = 'Buscar viajes disponibles'
-      #swagger.description = 'Viajes ABIERTOS o EN_CURSO con asientos > 0, filtrados por origen y destino.'
+      #swagger.summary = 'Buscar viajes disponibles por recorrido'
       #swagger.security = [{ "bearerAuth": [] }]
-      #swagger.parameters['origen'] = { in: 'query', required: true, type: 'string', description: 'Ciudad de origen.' }
-      #swagger.parameters['destino'] = { in: 'query', required: true, type: 'string', description: 'Ciudad de destino.' }
-      #swagger.responses[200] = { description: 'Viajes disponibles.', schema: [{ $ref: '#/definitions/Viaje' }] }
-      #swagger.responses[400] = { description: 'Debe enviar origen y destino.' }
+      #swagger.parameters['idRecorrido'] = { in: 'query', required: true, type: 'integer' }
     */
     try {
-        const { origen, destino } = req.query;
-        const origenNormalizado = String(origen || '').trim();
-        const destinoNormalizado = String(destino || '').trim();
-
-        if (!origenNormalizado || !destinoNormalizado) {
-            return res.status(400).json({
-                status: '0',
-                msg: 'Debe enviar origen y destino.'
-            });
+        const idRecorrido = Number(req.query.idRecorrido);
+        if (!Number.isSafeInteger(idRecorrido) || idRecorrido < 1) {
+            return res.status(400).json({ msg: 'Selecciona un recorrido valido.' });
         }
-
-        // El pasajero puede reservar viajes publicados o ya iniciados, siempre que queden asientos.
-        // iLike evita que una diferencia de mayusculas/minusculas rompa la busqueda.
+        const recorrido = await Recorrido.findByPk(idRecorrido);
+        if (!recorrido?.activo) return res.status(400).json({ msg: 'Recorrido no disponible.' });
         const viajes = await Viaje.findAll({
             where: {
-                origen: {
-                    [Op.iLike]: origenNormalizado
-                },
-                destino: {
-                    [Op.iLike]: destinoNormalizado
-                },
-                estadoViaje: {
-                    [Op.in]: ['ABIERTO', 'EN_CURSO']
-                },
-                asientosDisponibles: {
-                    [Op.gt]: 0
-                }
+                idRecorrido,
+                estadoViaje: { [Op.in]: ['ABIERTO', 'EN_CURSO'] },
+                asientosDisponibles: { [Op.gt]: 0 },
             },
             include: [
-                {
-                    association: 'chofer',
-                    include: [
-                        {
-                            association: 'usuario',
-                            attributes: {
-                                exclude: ['passwordHash']
-                            }
-                        }
-                    ]
-                },
-                {
-                    association: 'auto'
-                },
-                {
-                    association: 'reservas'
-                }
+                { association: 'chofer', required: true, where: { estadoChofer: { [Op.in]: ['DISPONIBLE', 'EN_VIAJE', 'DESCANSO'] } }, include: [{ association: 'habilitacion', required: true, where: { estado: 'APROBADO' } }, { association: 'usuario', required: true, where: { activo: true }, attributes: { exclude: ['passwordHash'] } }] },
+                'auto', { association: 'reservas', include: ['invitado'] },
             ],
-            order: [
-                ['fechaSalida', 'ASC'],
-                ['horaSalida', 'ASC']
-            ]
+            order: [['fechaSalida', 'ASC'], ['horaSalida', 'ASC']],
         });
-
-        return res.status(200).json(await protegerReservas(req, viajes));
-    } catch (error) {
-        console.error(error);
-
-        return res.status(500).json({
-            status: '0',
-            msg: 'Error al buscar viajes disponibles.',
-            error: error.message
-        });
+        return res.json(await protegerReservas(req, viajes));
+    } catch {
+        return res.status(500).json({ msg: 'Error al buscar viajes disponibles.' });
     }
+};
+
+// Catalogo publico: proyeccion explicita, sin usuarios, reservas ni ubicaciones.
+viajeCtrl.getViajesPublicos = async (req, res, next) => {
+    try {
+        const idRecorrido = req.query.idRecorrido === undefined ? null : Number(req.query.idRecorrido);
+        if (idRecorrido !== null && (!Number.isSafeInteger(idRecorrido) || idRecorrido < 1)) return res.status(400).json({ msg: 'Selecciona un recorrido valido.' });
+        const { sequelize } = require('../models/relaciones');
+        const viajes = await Viaje.findAll({
+            where: {
+                ...(idRecorrido === null ? {} : { idRecorrido }),
+                estadoViaje: { [Op.in]: ['ABIERTO', 'EN_CURSO'] },
+                asientosDisponibles: { [Op.gt]: 0 },
+                fechaSalida: { [Op.gte]: sequelize.literal("(CURRENT_TIMESTAMP AT TIME ZONE 'America/Argentina/Jujuy')::date") },
+            },
+            include: [
+                { association: 'recorrido', required: true, where: { activo: true }, include: [{ association: 'paradaOrigen', include: ['ciudad'] }, { association: 'paradaDestino', include: ['ciudad'] }] },
+                { association: 'chofer', attributes: ['idChofer'], required: true, where: { estadoChofer: { [Op.in]: ['DISPONIBLE', 'EN_VIAJE', 'DESCANSO'] } }, include: [
+                    { association: 'habilitacion', attributes: [], required: true, where: { estado: 'APROBADO' } },
+                    { association: 'usuario', attributes: [], required: true, where: { activo: true } },
+                ] },
+                { association: 'auto', attributes: ['marca', 'modelo'], required: true, where: { estado: { [Op.in]: ['DISPONIBLE', 'EN_VIAJE'] } } },
+            ],
+            limit: 100, order: [['fechaSalida', 'ASC'], ['horaSalida', 'ASC'], ['idViaje', 'ASC']],
+        });
+        return res.json(viajes.map(v => ({
+            idViaje: v.idViaje, idRecorrido: v.idRecorrido, origen: v.origen, destino: v.destino,
+            fechaSalida: v.fechaSalida, horaSalida: v.horaSalida, tarifaPorAsiento: v.tarifaPorAsiento,
+            asientosDisponibles: v.asientosDisponibles, estadoViaje: v.estadoViaje,
+            salida: v.recorrido.paradaOrigen.nombre, llegada: v.recorrido.paradaDestino.nombre,
+            llegadaConfirmada: v.recorrido.paradaDestino.ubicacionConfirmada,
+            vehiculo: { marca: v.auto.marca, modelo: v.auto.modelo },
+        })));
+    } catch (error) { next(error); }
 };
 
 // Registrar un nuevo viaje
@@ -204,6 +167,10 @@ viajeCtrl.createViaje = async (req, res) => {
     */
     try {
         const { idChofer, idAuto } = req.body;
+        const idRecorrido = Number(req.body.idRecorrido);
+        if (!Number.isSafeInteger(idRecorrido) || idRecorrido < 1) return res.status(400).json({ msg: 'Selecciona un recorrido valido.' });
+        const recorrido = await Recorrido.findByPk(idRecorrido);
+        if (!recorrido?.activo) return res.status(400).json({ msg: 'Recorrido no disponible.' });
 
         // Verificar que existan el chofer y el auto
         const choferExiste = await Chofer.findByPk(idChofer);
@@ -212,6 +179,9 @@ viajeCtrl.createViaje = async (req, res) => {
         if (!choferExiste || !autoExiste) {
             return res.status(400).json({ status: '0', msg: 'Chofer o Auto no válidos/inexistentes.' });
         }
+
+        if (!(await require('../services/cuenta-habilitada').choferAprobado(idChofer))) return res.status(403).json({ msg: 'El chofer debe estar aprobado y habilitado por administracion.' });
+        if (autoExiste.estado !== 'DISPONIBLE') return res.status(400).json({ msg: 'El vehiculo no esta habilitado o disponible.' });
 
         // Un auto no puede estar en más de un viaje EN_CURSO al mismo tiempo
         if (!(await validarChoferAutenticado(req, idChofer))) {
@@ -234,15 +204,17 @@ viajeCtrl.createViaje = async (req, res) => {
         }
 
         // La capacidad del auto define los asientos iniciales del viaje.
-        const asientosIniciales = autoExiste.capacidadAsientos; 
+        const asientosIniciales = autoExiste.capacidadAsientos;
 
         const nuevoViaje = await Viaje.create({
-            ...req.body,                           // Pasa automáticamente origen, destino, fechas, tarifas, idChofer, idAuto, etc.
-            asientosDisponibles: asientosIniciales, 
-            estadoViaje: 'ABIERTO'                 
+            idRecorrido, idChofer, idAuto,
+            fechaSalida: req.body.fechaSalida, horaSalida: req.body.horaSalida,
+            tarifaPorAsiento: req.body.tarifaPorAsiento,
+            asientosDisponibles: asientosIniciales,
+            estadoViaje: 'ABIERTO'
         });
 
-        res.json({ status: '1', msg: 'Viaje guardado de forma exitosa.' });
+        res.status(201).json({ status: '1', msg: 'Viaje guardado de forma exitosa.', viaje: await Viaje.findByPk(nuevoViaje.idViaje) });
     } catch (error) {
         res.status(400).json({ status: '0', msg: 'Error procesando la operación de guardado.' });
     }
@@ -262,8 +234,15 @@ viajeCtrl.editViaje = async (req, res) => {
       #swagger.responses[404] = { description: 'Viaje no encontrado.' }
     */
     try {
-        const [actualizados] = await Viaje.update(req.body, {
-            where: { idViaje: req.params.id } 
+        if (req.body.origen !== undefined || req.body.destino !== undefined) return res.status(400).json({ msg: 'Usa idRecorrido para seleccionar el trayecto.' });
+        if (req.body.idRecorrido !== undefined) {
+            const recorrido = await Recorrido.findByPk(req.body.idRecorrido);
+            if (!recorrido?.activo) return res.status(400).json({ msg: 'Recorrido no disponible.' });
+        }
+        const campos = ['idRecorrido', 'fechaSalida', 'horaSalida', 'tarifaPorAsiento'];
+        const cambios = Object.fromEntries(campos.filter(campo => req.body[campo] !== undefined).map(campo => [campo, req.body[campo]]));
+        const [actualizados] = await Viaje.update(cambios, {
+            where: { idViaje: req.params.id }
         });
         if (actualizados === 0) {
             return res.status(404).json({ status: '0', msg: 'Viaje no encontrado.' });
@@ -356,7 +335,7 @@ viajeCtrl.changeEstado = async (req, res) => {
         }
 
         const viajeActualizado = await Viaje.findByPk(idViaje, {
-            include: ['chofer', 'auto', 'reservas']
+            include: ['chofer', 'auto', { association: 'reservas', include: ['invitado'] }]
         });
 
         if (req.io) {
@@ -427,7 +406,7 @@ viajeCtrl.actualizarAsientosDisponibles = async (req, res) => {
         await viaje.save();
 
         const viajeActualizado = await Viaje.findByPk(idViaje, {
-            include: ['chofer', 'auto', 'reservas']
+            include: ['chofer', 'auto', { association: 'reservas', include: ['invitado'] }]
         });
 
         if (req.io) {

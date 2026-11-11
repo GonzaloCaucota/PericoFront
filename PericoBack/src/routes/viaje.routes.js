@@ -7,6 +7,7 @@ const router = express.Router();
 
 // Las rutas definen el contrato HTTP. verifyToken autentica y verificarRol limita acciones sensibles.
 // Consultar viajes: cualquier usuario logueado (el pasajero necesita ver los disponibles).
+router.get('/publicos', viajeCtrl.getViajesPublicos);
 router.get('/', authCtrl.verifyToken, viajeCtrl.getViajes);
 router.get('/disponibles', authCtrl.verifyToken, viajeCtrl.getViajesDisponibles);
 router.get('/:id', authCtrl.verifyToken, viajeCtrl.getViaje);

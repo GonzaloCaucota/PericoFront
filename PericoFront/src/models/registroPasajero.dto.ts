@@ -6,6 +6,5 @@ export interface RegistroPasajeroDTO {
   telefono: string;
   activo?: boolean;
   calificacion?: number;
-  cantidadReservas?: number;
   estadoPasajero?: 'ACTIVO' | 'SUSPENDIDO' | 'BLOQUEADO' | 'ELIMINADO';
 }

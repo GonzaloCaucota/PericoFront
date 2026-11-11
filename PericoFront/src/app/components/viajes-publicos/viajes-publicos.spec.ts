@@ -1,0 +1,92 @@
+import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
+import { ViajesPublicos } from './viajes-publicos';
+import { API_URL } from '../../config/api';
+
+describe('Viajes como invitado', () => {
+  beforeEach(() => TestBed.configureTestingModule({ imports: [ViajesPublicos], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] }));
+  it('consulta sin login, muestra asientos y ofrece ingresar para reservar', async () => {
+    const fixture = TestBed.createComponent(ViajesPublicos);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(`${API_URL}/recorridos`).flush([]);
+    const request = http.expectOne(`${API_URL}/viajes/publicos`);
+    expect(request.request.headers.has('Authorization')).toBe(false);
+    request.flush([{ idViaje: 1, origen: 'Jujuy', destino: 'Perico', fechaSalida: '2099-11-10', horaSalida: '12:00', tarifaPorAsiento: '1500', asientosDisponibles: 3, salida: 'Dorrego', llegada: 'Centro', llegadaConfirmada: false }]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('3 asientos disponibles');
+    expect(fixture.nativeElement.textContent).toContain('Reservar sin cuenta');
+    http.verify();
+  });
+  it('permite reintentar si falla la API', () => {
+    const fixture = TestBed.createComponent(ViajesPublicos);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(`${API_URL}/recorridos`).flush([]);
+    http.expectOne(`${API_URL}/viajes/publicos`).flush({}, { status: 503, statusText: 'Unavailable' });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('No se pudieron cargar los viajes');
+    fixture.nativeElement.querySelector('button').click();
+    http.expectOne(`${API_URL}/viajes/publicos`).flush([]);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('No hay viajes disponibles');
+    http.verify();
+  });
+});
+
+describe('Reserva sin cuenta', () => {
+  beforeEach(() => { localStorage.removeItem('reserva-invitado-token'); TestBed.configureTestingModule({ imports: [ViajesPublicos], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] }); });
+  afterEach(() => localStorage.removeItem('reserva-invitado-token'));
+  it('envia nombre, telefono y asientos y conserva el comprobante', () => {
+    const fixture = TestBed.createComponent(ViajesPublicos);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(`${API_URL}/recorridos`).flush([]);
+    const viaje = { idViaje: 7, origen: 'Jujuy', destino: 'Perico', fechaSalida: '2099-11-10', horaSalida: '12:00', tarifaPorAsiento: '1500', asientosDisponibles: 3, salida: 'Dorrego', llegada: 'Centro', llegadaConfirmada: false, estadoViaje: 'ABIERTO', vehiculo: { marca: 'Test', modelo: 'Test' } };
+    http.expectOne(`${API_URL}/viajes/publicos`).flush([viaje]);
+    fixture.componentInstance.seleccionado = viaje;
+    fixture.componentInstance.nombre = 'Ana Perez';
+    fixture.componentInstance.telefono = '3881234567';
+    fixture.componentInstance.asientos = 2;
+    fixture.componentInstance.reservar();
+    const request = http.expectOne(`${API_URL}/reservas/invitado`);
+    expect(request.request.body).toEqual({ idViaje: 7, nombre: 'Ana Perez', telefono: '3881234567', cantidadAsientos: 2 });
+    request.flush({ token: 'a'.repeat(64), reserva: { idReserva: 4, cantidadAsientos: 2, importeTotal: '3000', estadoReserva: 'PENDIENTE', estadoPago: 'PENDIENTE' } });
+    http.expectOne(`${API_URL}/viajes/publicos`).flush([]);
+    expect(localStorage.getItem('reserva-invitado-token')).toBe('a'.repeat(64));
+    expect(fixture.componentInstance.comprobante?.idReserva).toBe(4);
+    http.verify();
+  });
+});
+
+describe('Ubicacion de invitado', () => {
+  let geoDescriptor: PropertyDescriptor | undefined;
+  beforeEach(() => {
+    geoDescriptor = Object.getOwnPropertyDescriptor(navigator, 'geolocation');
+    TestBed.configureTestingModule({ imports: [ViajesPublicos], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+  });
+  afterEach(() => { if (geoDescriptor) Object.defineProperty(navigator, 'geolocation', geoDescriptor); else Reflect.deleteProperty(navigator, 'geolocation'); });
+  it('envia coordenadas solo despues de obtener permiso y usa el comprobante', () => {
+    const component = TestBed.createComponent(ViajesPublicos).componentInstance;
+    component.tokenReserva = 'a'.repeat(64);
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (success: any) => success({ coords: { latitude: -24.2, longitude: -65.3, accuracy: 15 } }) } });
+    component.compartirUbicacion();
+    const http = TestBed.inject(HttpTestingController);
+    const req = http.expectOne(`${API_URL}/reservas/invitado/ubicacion`);
+    expect(req.request.headers.get('X-Reserva-Token')).toBe('a'.repeat(64));
+    expect(req.request.body).toEqual({ compartir: true, latitud: -24.2, longitud: -65.3, precision: 15 });
+    req.flush({ compartiendo: true });
+    expect(component.mensajeUbicacion).toContain('Ubicacion compartida');
+    http.verify();
+  });
+  it('respeta el permiso denegado sin enviar coordenadas', () => {
+    const component = TestBed.createComponent(ViajesPublicos).componentInstance;
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (_: any, failure: any) => failure({ code: 1 }) } });
+    component.compartirUbicacion();
+    expect(component.mensajeUbicacion).toContain('No diste permiso');
+    expect(component.localizando).toBe(false);
+    TestBed.inject(HttpTestingController).verify();
+  });
+});

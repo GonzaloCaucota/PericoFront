@@ -27,7 +27,7 @@ const cancelarReservaConTransaccion = async (idReserva, transaction) => {
 
   const viaje = await Viaje.findByPk(reserva.idViaje, {
     transaction,
-    lock: true,
+    lock: { level: 'UPDATE', of: Viaje },
   });
 
   if (!viaje) {
@@ -100,7 +100,7 @@ reservaCtrl.registrarReserva = async (req, res) => {
 
       viaje = await Viaje.findByPk(req.body.idViaje, {
         transaction,
-        lock: true,
+        lock: { level: 'UPDATE', of: Viaje },
       });
 
       if (!viaje) {
@@ -108,6 +108,11 @@ reservaCtrl.registrarReserva = async (req, res) => {
         return res.status(404).json({
           mensaje: 'Viaje no encontrado',
         });
+      }
+
+      if (!(await require('../services/cuenta-habilitada').choferAprobado(viaje.idChofer))) {
+        await transaction.rollback();
+        return res.status(403).json({ mensaje: 'El chofer de este viaje no esta habilitado.' });
       }
 
       // Se permite reservar un viaje publicado o ya iniciado si todavia quedan asientos.
@@ -244,6 +249,7 @@ reservaCtrl.obtenerReservas = async (req, res) => {
   try {
     const reservas = await Reserva.findAll({
       include: [
+        'invitado',
         {
           association: 'pasajero',
           include: ['usuario']

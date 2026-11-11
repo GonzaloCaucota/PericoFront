@@ -1,3 +1,5 @@
+import { RecorridoService } from '../../services/recorrido.service';
+import { Recorrido } from '../../../models/recorrido.model';
 import { Component, ChangeDetectorRef, OnInit, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -37,9 +39,8 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
   public historial: ReservaHistorial[] = [];
   public reservaActiva?: ReservaHistorial;
 
-  public ciudades = ['San Salvador de Jujuy', 'Perico'];
-  public origen = 'Perico';
-  public destino = 'San Salvador de Jujuy';
+  public recorridos: Recorrido[] = [];
+  public idRecorrido: number | null = null;
   public cantidadAsientos = 1;
 
   public mostrarHistorial = false;
@@ -60,6 +61,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
     1;
 
   constructor(
+    private _recorridoService: RecorridoService,
     private _pasajeroService: PasajeroService,
     private _rutaService: RutaService,
     private _changeDetectorRef: ChangeDetectorRef,
@@ -69,7 +71,19 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadPasajero();
-    this.buscarViajes();
+    this._recorridoService.listar().subscribe({
+      next: recorridos => {
+        this.recorridos = recorridos;
+        this.idRecorrido = recorridos.find(r => r.codigo === 'SSJ_PERICO')?.idRecorrido ?? recorridos[0]?.idRecorrido ?? null;
+        this.buscarViajes();
+        this._changeDetectorRef.detectChanges();
+      },
+      error: () => { this.mensaje = 'No se pudieron cargar los recorridos. Recarga la pagina para reintentar.'; this._changeDetectorRef.detectChanges(); }
+    });
+  }
+
+  get recorridoSeleccionado(): Recorrido | undefined {
+    return this.recorridos.find(recorrido => recorrido.idRecorrido === Number(this.idRecorrido));
   }
 
   ngAfterViewInit(): void {
@@ -104,8 +118,8 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
   }
 
   buscarViajes(silencioso = false): void {
-    if (this.origen === this.destino) {
-      this.mensaje = 'El origen y el destino no pueden ser iguales.';
+    if (!this.recorridoSeleccionado) {
+      this.mensaje = 'Selecciona un recorrido disponible.';
       return;
     }
 
@@ -115,7 +129,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
     }
 
     // El service llama a /api/viajes/disponibles y el backend filtra por recorrido/asientos.
-    this._pasajeroService.getViajesDisponibles(this.origen, this.destino).subscribe({
+    this._pasajeroService.getViajesDisponibles(Number(this.idRecorrido)).subscribe({
       next: (data) => {
         this.viajesDisponibles = data as ViajeCard[];
         this.registrarEventosDeViajesDisponibles();

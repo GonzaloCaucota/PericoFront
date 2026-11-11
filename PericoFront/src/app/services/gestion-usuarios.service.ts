@@ -24,4 +24,14 @@ export class GestionUsuariosService {
   obtenerChoferes(): Observable<any> {
     return this.http.get(`${this.apiUrl}/choferes`); 
   }
+  altaUsuario(tipo: 'CHOFER' | 'PASAJERO', datos: any): Observable<any> {
+    return this.http.post(`${this.apiUrl}/admins/${tipo === 'CHOFER' ? 'choferes' : 'pasajeros'}`, datos);
+  }
+  moderar(tipo: 'choferes' | 'pasajeros', id: number, accion: string, motivo: string): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/admins/${tipo}/${id}/${accion}`, { motivo });
+  }
+  obtenerAutos(): Observable<any[]> { return this.http.get<any[]>(`${this.apiUrl}/autos`); }
+  habilitarAuto(id: number, estado: string, motivo: string): Observable<any> {
+    return this.http.patch(`${this.apiUrl}/admins/autos/${id}/habilitacion`, { estado, motivo });
+  }
 }

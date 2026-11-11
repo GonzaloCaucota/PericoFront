@@ -1,39 +1,37 @@
-const jwt = require('jsonwebtoken'); 
-const authCtrl = {} 
- 
-authCtrl.verifyToken = async (req, res, next) => { 
+const jwt = require('jsonwebtoken');
+const authCtrl = {}
+
+authCtrl.verifyToken = async (req, res, next) => {
     // JWT protege las rutas privadas: el front envia Authorization: Bearer <token>.
     // Si el token es valido, el payload queda disponible como req.usuario para los demas controladores.
-    // 1. Validar si el header existe antes de hacer split 
-    const authHeader = req.headers.authorization; 
-    if (!authHeader) { 
-        return res.status(401).json({ message: 'Unauthorized request: No token provided.' }); 
-    } 
- 
-    // 2. Extraer el token separando por el espacio 
-    const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1]; 
-     
-    // 3. Validar que el token no sea undefined o esté vacío 
-    if (!token || token === 'null') { 
-        return res.status(401).json({ message: 'Unauthorized request: Invalid token format.' }); 
-    } 
- 
-    try { 
-        // 4. Capturar errores de verificación (token expirado, firma inválida, etc.) 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET); 
+    // 1. Validar si el header existe antes de hacer split
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Unauthorized request: No token provided.' });
+    }
 
-        const { Usuario } = require('../models/relaciones');
-        const cuenta = await Usuario.findByPk(decoded.idUsuario);
-        if (!cuenta || !cuenta.activo || cuenta.rol !== decoded.rol) {
-            return res.status(401).json({ message: 'Cuenta no habilitada.' });
+    // 2. Extraer el token separando por el espacio
+    const token = /^Bearer ([^\s]+)$/i.exec(authHeader)?.[1];
+
+    // 3. Validar que el token no sea undefined o esté vacío
+    if (!token || token === 'null') {
+        return res.status(401).json({ message: 'Unauthorized request: Invalid token format.' });
+    }
+
+    try {
+        // 4. Capturar errores de verificación (token expirado, firma inválida, etc.)
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        if (!(await require('../services/cuenta-habilitada')(decoded))) {
+            return res.status(401).json({ message: 'Cuenta suspendida o pendiente de aprobacion.' });
         }
         req.usuario = decoded;
 
-        next(); 
-    } catch (error) { 
-        return res.status(401).json({ message: 'Unauthorized request: Invalid or expired token.' }); 
-    } 
-} 
+        require('../services/request-context').run({ idUsuario: decoded.idUsuario }, () => next());
+    } catch (error) {
+        return res.status(401).json({ message: 'Unauthorized request: Invalid or expired token.' });
+    }
+}
 
 
 // Middleware de autorizacion por rol.
@@ -81,4 +79,4 @@ authCtrl.choferReserva = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-module.exports = authCtrl; 
+module.exports = authCtrl;

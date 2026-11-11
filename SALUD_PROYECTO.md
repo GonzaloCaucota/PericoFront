@@ -21,7 +21,7 @@ Estado: mejorado, con compilación y pruebas locales aprobadas. La validación l
 
 ## Verificación
 
-- Frontend: 17 pruebas aprobadas en 16 archivos.
+- Frontend: 20 pruebas aprobadas en 16 archivos.
 - Backend: 12 pruebas de regresión aprobadas con modelos simulados, sin escribir en una base real.
 - Compilación de producción aprobada.
 - Sintaxis JavaScript del backend comprobada.
@@ -53,3 +53,7 @@ node test/security.test.js
 npm test
 ```
 
+
+Se aplicó localmente la migración 003 para normalizar ciudades, paradas y recorridos, con dos corredores e ida/vuelta. Detalles y límites en NORMALIZACION.md.
+
+La migración 004 agrega aprobaciones obligatorias de choferes y la relación de auditoría con el administrador autenticado. Se completaron altas y bloqueos del panel; ver ADMINISTRACION.md.

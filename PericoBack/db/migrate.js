@@ -2,9 +2,13 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const { createHash } = require('node:crypto');
 
-async function migrate(sequelize) {
+async function migrate(sequelize, { through } = {}) {
   const directory = path.join(__dirname, 'migrations');
-  const files = (await fs.readdir(directory)).filter(file => /^\d+_.+\.sql$/.test(file)).sort();
+  let files = (await fs.readdir(directory)).filter(file => /^\d+_.+\.sql$/.test(file)).sort();
+  if (through) {
+    if (!files.includes(through)) throw new Error('Version de migracion desconocida');
+    files = files.slice(0, files.indexOf(through) + 1);
+  }
   return sequelize.transaction(async transaction => {
     // Serializar despliegues concurrentes con un bloqueo transaccional.
     await sequelize.query('SELECT pg_advisory_xact_lock(82419031)', { transaction });

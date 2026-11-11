@@ -7,7 +7,7 @@ import { LoginService } from '../../services/login-service';
 import { GestionUsuariosService } from '../../services/gestion-usuarios.service'; 
 import { AdminDashboard } from '../admin-dashboard/admin-dashboard';
 
-type VistaAdmin = 'dashboard' | 'pasajeros' | 'choferes' | 'registrar-admin';
+type VistaAdmin = 'dashboard' | 'pasajeros' | 'choferes' | 'registrar-admin' | 'alta-usuario' | 'autos';
 
 @Component({
   selector: 'app-admin',
@@ -38,6 +38,54 @@ export class AdminPage implements OnInit {
     passwordHash: ['', [Validators.required, Validators.minLength(6)]],
     estadoAdmin: ['ACTIVO', Validators.required],
   });
+
+  motivoModeracion = '';
+  mensajeModeracion = '';
+  errorModeracion = '';
+  procesandoModeracion = false;
+  listaAutos: any[] = [];
+  altaForm = this.fb.group({
+    tipo: ['CHOFER', Validators.required], nombre: ['', Validators.required], apellido: ['', Validators.required],
+    email: ['', [Validators.required, Validators.email]], telefono: ['', Validators.required],
+    passwordHash: ['', [Validators.required, Validators.minLength(12)]], licenciaConducir: [''], fechaHabilitacion: ['']
+  });
+
+  darAlta(): void {
+    if (this.altaForm.invalid) { this.altaForm.markAllAsTouched(); return; }
+    const datos = this.altaForm.getRawValue();
+    if (datos.tipo === 'CHOFER' && (!datos.licenciaConducir?.trim() || !datos.fechaHabilitacion)) {
+      this.errorModeracion = 'Completa licencia y fecha de habilitacion del chofer.'; return;
+    }
+    this.procesandoModeracion = true;
+    this.errorModeracion = ''; this.mensajeModeracion = '';
+    this.gestionUsuarios.altaUsuario(datos.tipo as 'CHOFER' | 'PASAJERO', datos).subscribe({
+      next: res => { this.procesandoModeracion = false; this.mensajeModeracion = res.mensaje; this.altaForm.reset({ tipo: 'CHOFER' }); this.cdr.detectChanges(); },
+      error: err => { this.procesandoModeracion = false; this.errorModeracion = err.error?.mensaje || err.error?.error || 'No se pudo dar de alta'; this.cdr.detectChanges(); }
+    });
+  }
+
+  moderar(item: any, accion: 'aprobar' | 'activar' | 'bloquear'): void {
+    if (accion === 'bloquear' && this.motivoModeracion.trim().length < 5) { this.errorModeracion = 'Escribe un motivo de al menos 5 caracteres antes de bloquear.'; return; }
+    const tipo = this.vistaActual === 'choferes' ? 'choferes' : 'pasajeros';
+    const id = tipo === 'choferes' ? item.idChofer : item.idPasajero;
+    this.procesandoModeracion = true; this.errorModeracion = ''; this.mensajeModeracion = '';
+    this.gestionUsuarios.moderar(tipo, id, accion, this.motivoModeracion).subscribe({
+      next: res => { this.procesandoModeracion = false; this.mensajeModeracion = res.mensaje; this.motivoModeracion = ''; tipo === 'choferes' ? this.cargarChoferes() : this.cargarPasajeros(); this.cdr.detectChanges(); },
+      error: err => { this.procesandoModeracion = false; this.errorModeracion = err.error?.mensaje || 'No se pudo realizar la accion'; this.cdr.detectChanges(); }
+    });
+  }
+
+  cargarAutos(): void {
+    this.gestionUsuarios.obtenerAutos().subscribe({ next: autos => { this.listaAutos = autos; this.cdr.detectChanges(); }, error: () => { this.errorModeracion = 'No se pudieron cargar los vehiculos'; this.cdr.detectChanges(); } });
+  }
+  cambiarHabilitacionAuto(auto: any): void {
+    if (auto.estado !== 'INACTIVO' && this.motivoModeracion.trim().length < 5) { this.errorModeracion = 'Escribe un motivo de al menos 5 caracteres.'; return; }
+    this.procesandoModeracion = true; this.errorModeracion = ''; this.mensajeModeracion = '';
+    this.gestionUsuarios.habilitarAuto(auto.idAuto, auto.estado === 'INACTIVO' ? 'DISPONIBLE' : 'INACTIVO', this.motivoModeracion).subscribe({
+      next: res => { this.procesandoModeracion = false; this.mensajeModeracion = res.mensaje; this.motivoModeracion = ''; this.cargarAutos(); this.cdr.detectChanges(); },
+      error: err => { this.procesandoModeracion = false; this.errorModeracion = err.error?.mensaje || 'No se pudo modificar el vehiculo'; this.cdr.detectChanges(); }
+    });
+  }
 
   editarForm!: FormGroup;
   cargandoRegistro = false;
@@ -74,6 +122,8 @@ export class AdminPage implements OnInit {
   // === CONTROL DE VISTAS Y CARGA DE DATOS ===
   cambiarVista(vista: VistaAdmin): void {
     this.vistaActual = vista;
+    this.mensajeModeracion = ''; this.errorModeracion = ''; this.motivoModeracion = '';
+    if (vista === 'autos') this.cargarAutos();
     this.modoEdicion = false;
     this.textoFiltro = '';
     this.usuarioEncontrado = null;
@@ -161,9 +211,6 @@ export class AdminPage implements OnInit {
       nombre: this.editarForm.value.nombre,
       apellido: this.editarForm.value.apellido,
       telefono: this.editarForm.value.telefono,
-      activo: !['SUSPENDIDO', 'BLOQUEADO', 'INACTIVO', 'ELIMINADO'].includes(this.editarForm.value.estado),
-      estadoPasajero: this.vistaActual === 'pasajeros' ? this.editarForm.value.estado : undefined,
-      estadoChofer: this.vistaActual === 'choferes' ? this.editarForm.value.estado : undefined,
       licenciaConducir: this.editarForm.value.licenciaConducir,
       fechaHabilitacion: this.editarForm.value.fechaHabilitacion
     };

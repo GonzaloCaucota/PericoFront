@@ -8,6 +8,25 @@
     </div>
   </div>
 
+  <app-viajes-publicos />
+
+  <section class="mb-5" aria-labelledby="recorridosTitulo">
+    <h2 id="recorridosTitulo" class="h3 fw-bold mb-3">Nuestros recorridos</h2>
+    <p>San Salvador de Jujuy, Perico y El Carmen. Opciones de ida y vuelta.</p>
+    <p class="text-muted" *ngIf="errorRecorridos">{{ errorRecorridos }}</p>
+    <div class="row g-3">
+      <article class="col-md-6" *ngFor="let recorrido of recorridos">
+        <div class="card h-100 p-4 border rounded-4">
+          <h3 class="h5">{{ recorrido.origen }} ↔ {{ recorrido.destino }}</h3>
+          <p class="mb-1"><strong>Salida desde San Salvador:</strong> {{ recorrido.paradaOrigen.nombre }}</p>
+          <p class="mb-1"><strong>Llegada:</strong> {{ recorrido.paradaDestino.nombre }}</p>
+          <small class="text-muted" *ngIf="!recorrido.paradaDestino.ubicacionConfirmada">Punto de llegada aproximado; confirmar con el chofer.</small>
+          <a routerLink="/viajes" class="btn btn-outline-primary mt-3">Buscar viajes</a>
+        </div>
+      </article>
+    </div>
+  </section>
+
   <div class="row g-4 mb-4">
     
     <div class="col-md-6">

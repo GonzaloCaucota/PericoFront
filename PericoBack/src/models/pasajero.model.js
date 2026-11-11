@@ -26,10 +26,6 @@ const Pasajero = sequelize.define(
         type: DataTypes.DECIMAL(3, 2),
         defaultValue: 0,
       },
-      cantidadReservas: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0,
-      },
       estadoPasajero: {
         type: DataTypes.ENUM('ACTIVO', 'SUSPENDIDO', 'BLOQUEADO', 'ELIMINADO'),
         allowNull: false,

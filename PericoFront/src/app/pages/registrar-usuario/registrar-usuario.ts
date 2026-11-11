@@ -103,7 +103,7 @@ export class RegistrarUsuario implements OnInit {
   private manejarExito(res: any, tipoUsuario: string): void {
     console.log(`${tipoUsuario} registrado`, res);
     this.cargando = false;
-    this.mensajeExito = `${tipoUsuario} registrado correctamente. Redirigiendo al login...`;
+    this.mensajeExito = res.mensaje || `${tipoUsuario} registrado correctamente. Redirigiendo al login...`;
     this.cdr.detectChanges();
     
     setTimeout(() => {

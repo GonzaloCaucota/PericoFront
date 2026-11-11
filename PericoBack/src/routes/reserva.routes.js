@@ -3,6 +3,20 @@ const reservaCtrl = require('../controllers/reserva.controller');
 const authCtrl = require('../controllers/auth.controller');
 
 const router = express.Router();
+const invitado = require('../controllers/reserva-invitado.controller');
+// Limite local por IP para evitar rafagas sobre el formulario publico.
+const intentosInvitado = new Map();
+router.post('/invitado', (req, res, next) => {
+  const ahora = Date.now();
+  for (const [ip, item] of intentosInvitado) if (item.hasta < ahora) intentosInvitado.delete(ip);
+  const key = req.ip;
+  const item = intentosInvitado.get(key) || { veces: 0, hasta: ahora + 60000 };
+  if (item.veces >= 10 || intentosInvitado.size >= 10000) return res.status(429).json({ mensaje: 'Demasiados intentos. Espera un minuto y vuelve a intentar.' });
+  item.veces++; intentosInvitado.set(key, item); next();
+}, invitado.crear);
+router.patch('/invitado/ubicacion', invitado.ubicacion);
+router.get('/invitado', invitado.gestionar(false));
+router.patch('/invitado/cancelar', invitado.gestionar(true));
 
 // Listado completo de reservas: exclusivo de ADMIN.
 router.get('/', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN'), reservaCtrl.obtenerReservas);

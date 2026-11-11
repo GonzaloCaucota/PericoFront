@@ -53,6 +53,7 @@ app.use('/api/pasajeros', require('./src/routes/pasajero.routes'));
 app.use('/api/choferes', require('./src/routes/chofer.routes'));
 app.use('/api/autos', require('./src/routes/auto.routes'));
 app.use('/api/turnos', require('./src/routes/turnoChofer.routes'));
+app.use('/api/recorridos', require('./src/routes/recorrido.routes'));
 app.use('/api/viajes', require('./src/routes/viaje.routes'));
 app.use('/api/reservas', require('./src/routes/reserva.routes'));
 app.use('/api/usuarios', require('./src/routes/usuario.routes'));

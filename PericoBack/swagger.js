@@ -54,7 +54,6 @@ const doc = {
       idPasajero: 1,
       idUsuario: 1,
       calificacion: 4.5,
-      cantidadReservas: 3,
       estadoPasajero: 'ACTIVO',
       latitud: -24.1858,
       longitud: -65.2995,
@@ -90,8 +89,7 @@ const doc = {
     },
     Viaje: {
       idViaje: 1,
-      origen: 'San Salvador de Jujuy',
-      destino: 'Perico',
+      idRecorrido: 1,
       fechaSalida: '2026-07-10',
       horaSalida: '09:30:00',
       tarifaPorAsiento: 1500.0,

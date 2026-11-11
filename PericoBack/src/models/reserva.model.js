@@ -11,9 +11,10 @@ const Reserva = sequelize.define(
       autoIncrement: true,
     },
 
+    idInvitado: { type: DataTypes.INTEGER, allowNull: true, unique: true },
     idPasajero: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: { tableName: 'pasajeros', schema: 'taxi' },
         key: 'idPasajero',

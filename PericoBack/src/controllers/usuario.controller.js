@@ -52,6 +52,8 @@ usuarioCtrl.loginGoogle = async (req, res) => {
     #swagger.responses[401] = { description: 'Token de Google inválido.' }
   */
   const { token } = req.body;
+  if (!process.env.GOOGLE_CLIENT_ID) return res.status(503).json({ status: 0, msg: 'El acceso con Google todavia no esta configurado.' });
+  if (typeof token !== 'string' || !token.trim() || token.length > 10000) return res.status(400).json({ status: 0, msg: 'Falta una credencial valida de Google.' });
 
   try {
 
@@ -62,8 +64,8 @@ usuarioCtrl.loginGoogle = async (req, res) => {
 
     const payload = ticket.getPayload();
 
-    if (!payload.email_verified || !payload.email) throw new Error('Email de Google no verificado');
-    const email = payload.email;
+    if (!payload?.sub || !payload.email_verified || !payload.email) throw new Error('Email de Google no verificado');
+    const email = payload.email.trim().toLowerCase();
     const nombre = payload.given_name || '';
     const apellido = payload.family_name || '';
 
@@ -89,7 +91,7 @@ usuarioCtrl.loginGoogle = async (req, res) => {
     const habilitado = perfil && (usuario.rol === 'PASAJERO' ? perfil.estadoPasajero === 'ACTIVO'
       : usuario.rol === 'ADMIN' ? perfil.estadoAdmin === 'ACTIVO'
       : ['DISPONIBLE', 'EN_VIAJE', 'DESCANSO'].includes(perfil.estadoChofer));
-    if (!usuario.activo || !habilitado) return res.status(403).json({ status: 0, msg: 'Cuenta no habilitada' });
+    if (!usuario.activo || !habilitado || !(await require('../services/cuenta-habilitada')({ idUsuario: usuario.idUsuario, rol: usuario.rol }))) return res.status(403).json({ status: 0, msg: 'Cuenta no habilitada' });
     const jwtToken = jwt.sign({ idUsuario: usuario.idUsuario, rol: usuario.rol }, process.env.JWT_SECRET, { expiresIn: '1h' });
     return res.json({
       status: 1, msg: 'Login Google exitoso', token: jwtToken,
@@ -103,8 +105,7 @@ usuarioCtrl.loginGoogle = async (req, res) => {
 
     return res.status(401).json({
       status: 0,
-      msg: 'Token Google inválido',
-      error: error.message
+      msg: 'No se pudo validar tu identidad con Google. Intenta iniciar sesion nuevamente.'
     });
 
   }
@@ -173,6 +174,10 @@ usuarioCtrl.login = async (req, res) => {
       });
     }
 
+
+    if (usuario.rol === 'CHOFER' && !(await require('../services/cuenta-habilitada')({ idUsuario: usuario.idUsuario, rol: usuario.rol }))) {
+      return res.status(403).json({ status: 0, msg: 'Tu cuenta de chofer esta pendiente de aprobacion o fue suspendida por administracion.' });
+    }
 
     if (!usuario.activo) {
       return res.json({

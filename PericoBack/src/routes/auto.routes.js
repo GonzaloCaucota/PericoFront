@@ -8,6 +8,7 @@ const router = express.Router();
 
 // Consultar autos: cualquier usuario logueado (admin y chofer los necesitan ver).
 router.get('/', authCtrl.verifyToken, autoCtrl.getAutos);
+router.get('/:id/estadisticas', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN', 'CHOFER'), require('../controllers/estadisticas.controller').obtener('autos'));
 router.get('/:id', authCtrl.verifyToken, autoCtrl.getAuto);
 
 // Gestion de autos: ADMIN o CHOFER desde su panel.

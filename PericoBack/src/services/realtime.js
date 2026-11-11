@@ -5,8 +5,7 @@ module.exports = function configurarTiempoReal(io) {
   io.use(async (socket, next) => {
     try {
       const usuario = jwt.verify(socket.handshake.auth?.token, process.env.JWT_SECRET);
-      const cuenta = await Usuario.findByPk(usuario.idUsuario);
-      if (!cuenta?.activo || cuenta.rol !== usuario.rol) throw new Error('Cuenta no habilitada');
+      if (!(await require('./cuenta-habilitada')(usuario))) throw new Error('Cuenta no habilitada');
       socket.data.usuario = usuario;
       next();
     } catch { next(new Error('No autorizado')); }
@@ -20,6 +19,7 @@ module.exports = function configurarTiempoReal(io) {
     socket.on('disconnect', () => clearTimeout(timer));
   });
   return {
+    desconectarUsuario(id) { io.in(`usuario:${id}`).disconnectSockets(true); },
     emit(evento, datos) {
       // Los datos de pagos, reservas y ubicacion solo llegan a sus participantes.
       return (async () => {

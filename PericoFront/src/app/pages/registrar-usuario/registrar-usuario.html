@@ -29,6 +29,7 @@
         </li>
       </ul>
 
+      <div class="alert alert-info" *ngIf="rolSeleccionado === 'CHOFER'">Esta solicitud no habilita el servicio. Un administrador debe revisar y aprobar tu alta antes de que puedas iniciar sesión como chofer.</div>
       <form [formGroup]="registroForm" (ngSubmit)="registrarUsuario()">
         <div class="row g-3">
           

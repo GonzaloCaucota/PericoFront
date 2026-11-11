@@ -1,4 +1,4 @@
-const { sequelize, Usuario, Chofer, Auto, Viaje } = require('../models/relaciones');
+const { sequelize, Usuario, Chofer, Auto, Viaje, Admin, HabilitacionChofer } = require('../models/relaciones');
 
 const choferCtrl = {};
 
@@ -21,6 +21,7 @@ choferCtrl.actualizarChofer = async (req, res) => {
   if (req.usuario.rol !== 'ADMIN' && ['activo', 'estadoPasajero', 'calificacion', 'cantidadReservas', 'estadoChofer'].some(campo => req.body[campo] !== undefined)) {
     return res.status(403).json({ mensaje: 'Solo administracion puede modificar estos campos' });
   }
+  if (req.body.activo !== undefined || req.body.estadoChofer !== undefined) return res.status(400).json({ mensaje: 'Usa las acciones administrativas de aprobar, habilitar o bloquear para cambiar el acceso.' });
   const {
     nombre,
     apellido,
@@ -50,6 +51,13 @@ choferCtrl.actualizarChofer = async (req, res) => {
     }
 
     const usuario = chofer.usuario;
+    if (req.usuario.rol === 'ADMIN' && (activo === true || ['DISPONIBLE', 'EN_VIAJE', 'DESCANSO'].includes(estadoChofer))) {
+      const habilitacion = await HabilitacionChofer.findByPk(chofer.idChofer, { transaction });
+      if (habilitacion?.estado !== 'APROBADO') {
+        await transaction.rollback();
+        return res.status(409).json({ mensaje: 'Usa Aprobar alta para habilitar un chofer pendiente.' });
+      }
+    }
 
     // Solo se actualizan los campos que el cliente mando en el body.
     if (nombre !== undefined) usuario.nombre = nombre;
@@ -73,6 +81,7 @@ choferCtrl.actualizarChofer = async (req, res) => {
     await chofer.save({ transaction });
 
     await transaction.commit();
+    if (req.usuario?.rol === 'ADMIN') req.io?.desconectarUsuario?.(usuario.idUsuario);
 
     return res.status(200).json({
       status: '1',
@@ -162,7 +171,7 @@ choferCtrl.registrarChofer = async (req, res) => {
         email,
         passwordHash,
         telefono,
-        activo: true,
+        activo: req.usuario?.rol === 'ADMIN',
         rol: 'CHOFER',
       },
       { transaction }
@@ -173,17 +182,26 @@ choferCtrl.registrarChofer = async (req, res) => {
       {
         idUsuario: usuario.idUsuario,
         licenciaConducir,
-        estadoChofer: 'DISPONIBLE',
+        estadoChofer: req.usuario?.rol === 'ADMIN' ? 'DISPONIBLE' : 'INACTIVO',
         fechaHabilitacion,
         calificacion: 0,
       },
       { transaction }
     );
 
+    if (req.usuario?.rol === 'ADMIN') {
+      const administrador = await Admin.findOne({ where: { idUsuario: req.usuario.idUsuario }, transaction });
+      const habilitacion = await HabilitacionChofer.findByPk(chofer.idChofer, { transaction });
+      habilitacion.estado = 'APROBADO';
+      habilitacion.idAdmin = administrador.idAdmin;
+      habilitacion.fechaDecision = new Date();
+      habilitacion.motivo = 'Alta directa por administrador';
+      await habilitacion.save({ transaction });
+    }
     await transaction.commit();
 
     return res.status(201).json({
-      mensaje: 'Chofer registrado correctamente',
+      mensaje: req.usuario?.rol === 'ADMIN' ? 'Chofer dado de alta y aprobado.' : 'Solicitud recibida. Un administrador debe aprobar tu cuenta antes de ingresar.',
       usuario: quitarPassword(usuario),
       chofer,
     });
@@ -212,6 +230,7 @@ choferCtrl.obtenerChoferes = async (req, res) => {
     // Trae los choferes junto con los datos del usuario relacionado.
     const choferes = await Chofer.findAll({
       include: [
+        { association: 'habilitacion' },
         {
           model: Usuario,
           as: 'usuario',
@@ -242,6 +261,7 @@ choferCtrl.obtenerChoferPorId = async (req, res) => {
   try {
     const chofer = await Chofer.findByPk(req.params.idChofer, {
       include: [
+        { association: 'habilitacion' },
         {
           model: Usuario,
           as: 'usuario',
@@ -314,6 +334,10 @@ choferCtrl.cambiarEstadoChofer = async (req, res) => {
     if (req.usuario.rol !== 'ADMIN' && (['SUSPENDIDO', 'INACTIVO', 'ELIMINADO'].includes(chofer.estadoChofer) || !['DISPONIBLE', 'DESCANSO'].includes(estadoChofer))) {
       return res.status(403).json({ mensaje: 'Cambio de estado no permitido' });
     }
+    if (req.usuario.rol === 'ADMIN' && ['DISPONIBLE', 'EN_VIAJE', 'DESCANSO'].includes(estadoChofer)) {
+      const habilitacion = await HabilitacionChofer.findByPk(chofer.idChofer);
+      if (habilitacion?.estado !== 'APROBADO') return res.status(409).json({ mensaje: 'Usa Aprobar alta para habilitar este chofer.' });
+    }
     chofer.estadoChofer = estadoChofer;
     await chofer.save();
 
@@ -360,6 +384,7 @@ choferCtrl.actualizarUbicacionChofer = async (req, res) => {
 
     const chofer = await Chofer.findByPk(req.params.idChofer, {
       include: [
+        { association: 'habilitacion' },
         {
           model: Usuario,
           as: 'usuario',
@@ -473,7 +498,7 @@ choferCtrl.obtenerViajesDelChofer = async (req, res) => {
 
     const viajes = await Viaje.findAll({
       where: { idChofer: req.params.idChofer },
-      include: ['auto', 'reservas'],
+      include: ['auto', { association: 'reservas', include: ['invitado'] }],
       order: [
         ['fechaSalida', 'DESC'],
         ['horaSalida', 'DESC'],

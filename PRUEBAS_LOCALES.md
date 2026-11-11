@@ -46,7 +46,7 @@ npm start
 
 Abrir [http://localhost:4200](http://localhost:4200). La API está en [http://localhost:3000](http://localhost:3000), su documentación en [http://localhost:3000/api/docs](http://localhost:3000/api/docs).
 
-No hace falta Google ni credenciales de proveedores para probar el registro y login con email/contraseña. Se puede registrar un pasajero y un chofer desde la aplicación. Las reservas y cobros son en efectivo.
+No hace falta Google ni credenciales de proveedores para probar el registro y login con email/contraseña. El pasajero puede registrarse desde la aplicación. El registro público de chofer crea una solicitud pendiente; un administrador debe aprobarla en Gestionar Choferes o crearla directamente desde Dar de alta chofer / pasajero. Las reservas y cobros son en efectivo.
 
 Si API_URL o GOOGLE_CLIENT_ID están exportadas en la terminal del frontend, quitarlas con `unset API_URL GOOGLE_CLIENT_ID` para usar los valores locales predeterminados.
 
@@ -89,7 +89,7 @@ docker compose exec postgres psql -U taxi_local -d perico_db -c '\dt taxi.*'
 docker compose exec postgres psql -U taxi_local -d perico_db -c 'SELECT version, applied_at FROM taxi.schema_migrations ORDER BY version;'
 ```
 
-Aparecen las nueve tablas de la aplicación más `schema_migrations`.
+Aparecen las trece tablas de la aplicación más `schema_migrations`.
 
 Para una consola SQL interactiva:
 
@@ -166,3 +166,5 @@ Se validó `docker compose config`, se iniciaron ambos contenedores, se aplicaro
 Referencia: [imagen oficial de PostgreSQL y persistencia con Compose](https://docs.docker.com/guides/postgresql/immediate-setup-and-data-persistence/).
 
 pgAdmin se configura usando el [contenedor oficial](https://www.pgadmin.org/docs/pgadmin4/9.19/container_deployment.html) y la definición precargada de `docker/pgadmin/servers.json`.
+
+Los recorridos San Salvador–Perico y San Salvador–El Carmen se cargan mediante la migración 003, con ida y vuelta. Ver [NORMALIZACION.md](NORMALIZACION.md).

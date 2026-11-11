@@ -1,5 +1,5 @@
 import { GOOGLE_CLIENT_ID } from '../../config/api';
-import { Component, OnInit, inject, ChangeDetectorRef, NgZone } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterLink, RouterModule } from '@angular/router';
@@ -12,7 +12,7 @@ import { LoginService, LoginPayload, UsuarioSesion } from '../../services/login-
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
-export class Login implements OnInit {
+export class Login implements OnInit, AfterViewInit {
   // Login permite autenticacion tradicional y Google Identity Services.
   private fb = inject(FormBuilder);
   private loginService = inject(LoginService); 
@@ -20,6 +20,8 @@ export class Login implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private ngZone = inject(NgZone);
 
+  readonly googleConfigurado = !!GOOGLE_CLIENT_ID;
+  googleError = '';
   loginForm!: FormGroup;
   cargando = false;
   mensajeError: string | null = null;
@@ -31,9 +33,11 @@ export class Login implements OnInit {
       password: ['', Validators.required]
     });
 
-    if (GOOGLE_CLIENT_ID) this.loadGoogleScript();
-
     (window as any).handleCredentialResponse = this.handleCredentialResponse.bind(this);
+  }
+
+  ngAfterViewInit(): void {
+    if (GOOGLE_CLIENT_ID) this.loadGoogleScript();
   }
 
   iniciarSesion(): void {
@@ -82,7 +86,10 @@ export class Login implements OnInit {
         script.async = true;
         script.defer = true;
         script.onload = () => this.inicializarGoogleId();
+        script.onerror = () => this.ngZone.run(() => { script.remove(); this.googleError = 'No se pudo cargar Google. Puedes ingresar con email o continuar como invitado.'; this.cdr.markForCheck(); });
         document.head.appendChild(script);
+      } else {
+        document.getElementById('google-gsi-script')?.addEventListener('load', () => this.inicializarGoogleId(), { once: true });
       }
     }
   }
@@ -131,9 +138,7 @@ export class Login implements OnInit {
         error: (err) => {
           console.error('Error de Google Login:', err);
           this.cargando = false;
-          this.mensajeError = err.status === 401 
-            ? 'Esta cuenta de Google no está registrada. Por favor, regístrate primero.' 
-            : 'Error al comunicarse con el servidor. Intente más tarde.';
+          this.mensajeError = err.error?.msg || 'No se pudo ingresar con Google. Intenta nuevamente.';
           this.cdr.detectChanges();
         }
       });
