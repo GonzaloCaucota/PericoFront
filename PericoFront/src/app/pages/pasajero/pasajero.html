@@ -118,9 +118,14 @@
             </p>
           </div>
 
-          <span class="badge text-bg-primary">
-            {{ reservaActiva.estadoReserva }}
-          </span>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <span class="badge" [ngClass]="viajeActivo.estadoViaje === 'EN_CURSO' ? 'text-bg-success' : 'text-bg-secondary'">
+              Viaje: {{ viajeActivo.estadoViaje }}
+            </span>
+            <span class="badge text-bg-primary">
+              Reserva: {{ reservaActiva.estadoReserva }}
+            </span>
+          </div>
         </div>
 
         <div class="active-trip-details">

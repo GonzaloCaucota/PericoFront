@@ -1,6 +1,6 @@
 import { RecorridoService } from '../../services/recorrido.service';
 import { Recorrido } from '../../../models/recorrido.model';
-import { Component, ChangeDetectorRef, OnInit, AfterViewInit } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PasajeroService, CrearReservaDto } from '../../services/pasajero.service';
@@ -33,7 +33,7 @@ type ReservaHistorial = Reserva & {
   templateUrl: './pasajero.html',
   styleUrl: './pasajero.scss'
 })
-export class PasajeroComponent implements OnInit, AfterViewInit {
+export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
   // Pantalla principal del pasajero: busca viajes, reserva, cancela y ve ubicacion/ruta.
   public pasajero?: Pasajero;
   public viajesDisponibles: ViajeCard[] = [];
@@ -74,6 +74,9 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.loadPasajero();
+    this.escucharEvento<any>('viaje_creado', () => {
+      this.buscarViajes(true);
+    });
     this._recorridoService.listar().subscribe({
       next: recorridos => {
         this.recorridos = recorridos;
@@ -83,6 +86,11 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
       },
       error: () => { this.mensaje = 'No se pudieron cargar los recorridos. Recarga la pagina para reintentar.'; this._changeDetectorRef.detectChanges(); }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.eventosEscuchados.forEach(evento => this._socketService.dejarDeEscuchar(evento));
+    this.eventosEscuchados.clear();
   }
 
   get recorridoSeleccionado(): Recorrido | undefined {
@@ -454,10 +462,79 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
   }
 
   private escucharEvento<T>(evento: string, callback: (data: T) => void): void {
-    if (this.eventosEscuchados.has(evento)) return;
-
     this.eventosEscuchados.add(evento);
     this._socketService.escuchar<T>(evento, callback);
+  }
+
+  private manejarViajeActualizado(data: any): void {
+    const idViajeEvento = Number(data?.idViaje);
+    const viajeEncontrado = this.viajesDisponibles.find(v => Number(v.idViaje) === idViajeEvento);
+
+    if (viajeEncontrado && data?.estadoViaje) {
+      viajeEncontrado.estadoViaje = data.estadoViaje;
+    }
+
+    if (data?.estadoViaje && data.estadoViaje !== 'ABIERTO' && data.estadoViaje !== 'EN_CURSO') {
+      this.viajesDisponibles = this.viajesDisponibles.filter(v => Number(v.idViaje) !== idViajeEvento);
+    }
+
+    if (Number(this.reservaActiva?.viaje?.idViaje) === idViajeEvento) {
+      if (this.reservaActiva?.viaje && data?.estadoViaje) {
+        this.reservaActiva.viaje.estadoViaje = data.estadoViaje;
+      }
+
+      if (data?.estadoViaje === 'EN_CURSO') {
+        if (this.reservaActiva && this.reservaActiva.estadoReserva === 'PENDIENTE') {
+          this.reservaActiva.estadoReserva = 'CONFIRMADA';
+        }
+        this.mensaje = 'El chofer inicio el viaje (EN CURSO).';
+        this._toastr.info('Tu viaje esta en curso.');
+        this._changeDetectorRef.detectChanges();
+        this.loadPasajero();
+        return;
+      }
+
+      if (data?.estadoViaje === 'FINALIZADO') {
+        this.mensaje = 'Viaje finalizado.';
+        this._toastr.success('Viaje finalizado.');
+        this.reservaActiva = undefined;
+        this.puntoChofer = undefined;
+        this.puntoPasajero = undefined;
+        this.rutaGeoJson = undefined;
+        this._changeDetectorRef.detectChanges();
+        this.loadPasajero();
+        this.buscarViajes(true);
+        return;
+      }
+
+      if (data?.estadoViaje === 'CANCELADO') {
+        this.mensaje = 'El viaje fue cancelado.';
+        this._toastr.warning('El viaje fue cancelado.');
+        this.reservaActiva = undefined;
+        this.puntoChofer = undefined;
+        this.puntoPasajero = undefined;
+        this.rutaGeoJson = undefined;
+        this._changeDetectorRef.detectChanges();
+        this.loadPasajero();
+        this.buscarViajes(true);
+        return;
+      }
+
+      this.mensaje = `El viaje cambio a estado ${data.estadoViaje}.`;
+      this._changeDetectorRef.detectChanges();
+      this.loadPasajero();
+      return;
+    }
+
+    this._changeDetectorRef.detectChanges();
+  }
+
+  private manejarAsientosActualizados(data: any): void {
+    const idViajeEvento = Number(data?.idViaje);
+    if (Number(this.reservaActiva?.viaje?.idViaje) === idViajeEvento && this.reservaActiva?.viaje) {
+      this.reservaActiva.viaje.asientosDisponibles = data.asientosDisponibles;
+    }
+    this.actualizarAsientosEnListado(idViajeEvento, data.asientosDisponibles);
   }
 
   private registrarEventosDeReservaActiva(): void {
@@ -468,13 +545,21 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
 
     // Eventos por reserva: solo afectan al pasajero que tiene esa reserva activa.
     this.escucharEvento<any>(`pago_confirmado_reserva_${idReserva}`, (data) => {
+      if (this.reservaActiva && Number(this.reservaActiva.idReserva) === Number(idReserva)) {
+        this.reservaActiva.estadoPago = data?.estadoPago || 'PAGADO';
+        if (data?.estadoReserva) {
+          this.reservaActiva.estadoReserva = data.estadoReserva;
+        } else if (this.reservaActiva.estadoReserva === 'PENDIENTE') {
+          this.reservaActiva.estadoReserva = 'CONFIRMADA';
+        }
+      }
       this.mensaje = 'El pago de tu reserva fue confirmado.';
       this._toastr.success('Pago en efectivo confirmado.');
       this._changeDetectorRef.detectChanges();
       this.loadPasajero();
     });
 
-    this.escucharEvento<any>(`reserva_cancelada_${idReserva}`, (data) => {
+    this.escucharEvento<any>(`reserva_cancelada_${idReserva}`, () => {
       this.mensaje = 'Tu reserva fue cancelada.';
       this.reservaActiva = undefined;
       this.puntoChofer = undefined;
@@ -496,32 +581,39 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
         this.loadPasajero();
         this.buscarViajes(true);
         this._changeDetectorRef.detectChanges();
-      }
-    });
-
-    this.escucharEvento<any>(`viaje_actualizado_${idViaje}`, (data) => {
-      if (this.reservaActiva?.viaje) {
-        this.reservaActiva.viaje.estadoViaje = data.estadoViaje;
+        return;
       }
 
-      if (data.estadoViaje === 'FINALIZADO') {
-        this.mensaje = 'Viaje finalizado.';
-        this._toastr.success('Viaje finalizado.');
+      if (data.estadoReserva === 'CANCELADA' || data.estadoReserva === 'NO_PRESENTADO') {
+        this.mensaje = `Tu reserva cambio a estado ${data.estadoReserva}.`;
         this.reservaActiva = undefined;
         this.puntoChofer = undefined;
         this.puntoPasajero = undefined;
         this.rutaGeoJson = undefined;
+        this.loadPasajero();
         this.buscarViajes(true);
-      } else if (data.estadoViaje === 'CANCELADO') {
-        this.mensaje = 'El viaje fue cancelado.';
-        this.reservaActiva = undefined;
-        this.buscarViajes(true);
-      } else {
-        this.mensaje = `El viaje cambio a estado ${data.estadoViaje}.`;
+        this._changeDetectorRef.detectChanges();
+        return;
       }
 
+      if (this.reservaActiva && Number(this.reservaActiva.idReserva) === Number(idReserva)) {
+        if (data.estadoReserva) {
+          this.reservaActiva.estadoReserva = data.estadoReserva;
+        }
+        if (data.estadoPago) {
+          this.reservaActiva.estadoPago = data.estadoPago;
+        }
+        if (data.estadoViaje && this.reservaActiva.viaje) {
+          this.reservaActiva.viaje.estadoViaje = data.estadoViaje;
+        }
+      }
+      this.mensaje = `Tu reserva ahora esta ${data.estadoReserva}.`;
       this._changeDetectorRef.detectChanges();
       this.loadPasajero();
+    });
+
+    this.escucharEvento<any>(`viaje_actualizado_${idViaje}`, (data) => {
+      this.manejarViajeActualizado(data);
     });
 
     this.escucharEvento<any>(`ubicacion_chofer_viaje_${idViaje}`, (data) => {
@@ -536,33 +628,19 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
     });
 
     this.escucharEvento<any>(`asientos_actualizados_viaje_${idViaje}`, (data) => {
-      if (this.reservaActiva?.viaje) {
-        this.reservaActiva.viaje.asientosDisponibles = data.asientosDisponibles;
-      }
-
-      this.actualizarAsientosEnListado(data.idViaje, data.asientosDisponibles);
+      this.manejarAsientosActualizados(data);
     });
   }
 
   private registrarEventosDeViajesDisponibles(): void {
     this.viajesDisponibles.forEach((viaje) => {
-      // Eventos por viaje: actualizan asientos/estado en las tarjetas disponibles.
+      // Eventos por viaje: actualizan tanto las tarjetas disponibles como la reserva activa si coincide el idViaje.
       this.escucharEvento<any>(`asientos_actualizados_viaje_${viaje.idViaje}`, (data) => {
-        this.actualizarAsientosEnListado(data.idViaje, data.asientosDisponibles);
+        this.manejarAsientosActualizados(data);
       });
 
       this.escucharEvento<any>(`viaje_actualizado_${viaje.idViaje}`, (data) => {
-        const viajeEncontrado = this.viajesDisponibles.find(v => v.idViaje === data.idViaje);
-
-        if (viajeEncontrado) {
-          viajeEncontrado.estadoViaje = data.estadoViaje;
-        }
-
-        if (data.estadoViaje !== 'ABIERTO' && data.estadoViaje !== 'EN_CURSO') {
-          this.viajesDisponibles = this.viajesDisponibles.filter(v => v.idViaje !== data.idViaje);
-        }
-
-        this._changeDetectorRef.detectChanges();
+        this.manejarViajeActualizado(data);
       });
     });
   }

@@ -204,7 +204,9 @@ reservaCtrl.registrarPagoEfectivo = async (req, res) => {
 
     // El chofer registra el efectivo recibido y notifica a los participantes.
     reserva.estadoPago = 'PAGADO';
-    
+    if (reserva.estadoReserva === 'PENDIENTE') {
+      reserva.estadoReserva = 'CONFIRMADA';
+    }
     await reserva.save();
     req.io.emit(`pago_confirmado_reserva_${reserva.idReserva}`, {
       idReserva: reserva.idReserva,
@@ -213,6 +215,13 @@ reservaCtrl.registrarPagoEfectivo = async (req, res) => {
       estadoPago: reserva.estadoPago,
       estadoReserva: reserva.estadoReserva,
       tipoPago: 'EFECTIVO'
+    });
+    req.io.emit(`reserva_actualizada_${reserva.idReserva}`, {
+      idReserva: reserva.idReserva,
+      idViaje: reserva.idViaje,
+      idPasajero: reserva.idPasajero,
+      estadoReserva: reserva.estadoReserva,
+      estadoPago: reserva.estadoPago
     });
     req.io.emit(`pago_actualizado_viaje_${reserva.idViaje}`, {
       idReserva: reserva.idReserva,
@@ -226,6 +235,7 @@ reservaCtrl.registrarPagoEfectivo = async (req, res) => {
       mensaje: 'El pago en efectivo fue registrado con éxito por el chofer',
       idReserva: reserva.idReserva,
       estadoPago: reserva.estadoPago,
+      estadoReserva: reserva.estadoReserva,
     });
 
   } catch (error) {
@@ -328,6 +338,15 @@ reservaCtrl.cambiarEstadoReserva = async (req, res) => {
     reserva.estadoReserva = estado;
     await reserva.save({ transaction });
     await transaction.commit();
+
+    req.io?.emit(`reserva_actualizada_${reserva.idReserva}`, {
+      idReserva: reserva.idReserva,
+      idViaje: reserva.idViaje,
+      idPasajero: reserva.idPasajero,
+      estadoReserva: reserva.estadoReserva,
+      estadoPago: reserva.estadoPago,
+      reserva,
+    });
 
     return res.status(200).json({
       mensaje: 'Estado de reserva actualizado correctamente',

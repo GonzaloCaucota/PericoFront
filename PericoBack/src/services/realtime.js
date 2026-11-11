@@ -4,7 +4,12 @@ const { Usuario, Chofer, Pasajero, Reserva, Viaje } = require('../models/relacio
 module.exports = function configurarTiempoReal(io) {
   io.use(async (socket, next) => {
     try {
-      const usuario = jwt.verify(socket.handshake.auth?.token, process.env.JWT_SECRET);
+      const token = socket.handshake.auth?.token;
+      if (!token) {
+        socket.data.usuario = null;
+        return next();
+      }
+      const usuario = jwt.verify(token, process.env.JWT_SECRET);
       if (!(await require('./cuenta-habilitada')(usuario))) throw new Error('Cuenta no habilitada');
       socket.data.usuario = usuario;
       next();
@@ -12,8 +17,13 @@ module.exports = function configurarTiempoReal(io) {
   });
   io.on('connection', socket => {
     const usuario = socket.data.usuario;
+    if (!usuario) {
+      socket.join('publico');
+      return;
+    }
     socket.join(`usuario:${usuario.idUsuario}`);
     if (usuario.rol === 'ADMIN') socket.join('admins');
+    if (usuario.rol === 'PASAJERO') socket.join('pasajeros');
     const timer = setTimeout(() => socket.disconnect(true), Math.max(0, usuario.exp * 1000 - Date.now()));
     timer.unref();
     socket.on('disconnect', () => clearTimeout(timer));
@@ -42,6 +52,9 @@ module.exports = function configurarTiempoReal(io) {
         }
         let canal = io.to('admins');
         for (const id of destinatarios) canal = canal.to(`usuario:${id}`);
+        if (/^(?:asientos_actualizados_viaje_|viaje_actualizado_|viaje_creado)/.test(evento)) {
+          canal = canal.to('pasajeros').to('publico');
+        }
         canal.emit(evento, datos);
       })().catch(error => console.error('Error al emitir evento:', error.message));
     }

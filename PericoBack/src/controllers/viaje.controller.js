@@ -214,7 +214,14 @@ viajeCtrl.createViaje = async (req, res) => {
             estadoViaje: 'ABIERTO'
         });
 
-        res.status(201).json({ status: '1', msg: 'Viaje guardado de forma exitosa.', viaje: await Viaje.findByPk(nuevoViaje.idViaje) });
+        const viajeCreado = await Viaje.findByPk(nuevoViaje.idViaje);
+        req.io?.emit('viaje_creado', {
+            idViaje: nuevoViaje.idViaje,
+            idRecorrido: nuevoViaje.idRecorrido,
+            viaje: viajeCreado
+        });
+
+        res.status(201).json({ status: '1', msg: 'Viaje guardado de forma exitosa.', viaje: viajeCreado });
     } catch (error) {
         res.status(400).json({ status: '0', msg: 'Error procesando la operación de guardado.' });
     }
@@ -298,7 +305,7 @@ viajeCtrl.changeEstado = async (req, res) => {
 
         const reservasActualizadas = [];
 
-        if (estado === 'CANCELADO' || estado === 'FINALIZADO') {
+        if (estado === 'EN_CURSO' || estado === 'CANCELADO' || estado === 'FINALIZADO') {
             const reservasActivas = await Reserva.findAll({
                 where: {
                     idViaje: viaje.idViaje,
@@ -309,8 +316,15 @@ viajeCtrl.changeEstado = async (req, res) => {
             });
 
             for (const reserva of reservasActivas) {
-                reserva.estadoReserva = estado === 'CANCELADO' ? 'CANCELADA' : 'UTILIZADA';
-                await reserva.save();
+                if (estado === 'EN_CURSO') {
+                    if (reserva.estadoReserva === 'PENDIENTE') {
+                        reserva.estadoReserva = 'CONFIRMADA';
+                        await reserva.save();
+                    }
+                } else {
+                    reserva.estadoReserva = estado === 'CANCELADO' ? 'CANCELADA' : 'UTILIZADA';
+                    await reserva.save();
+                }
                 reservasActualizadas.push(reserva);
 
                 if (req.io) {
@@ -318,6 +332,7 @@ viajeCtrl.changeEstado = async (req, res) => {
                         idReserva: reserva.idReserva,
                         idViaje: viaje.idViaje,
                         estadoReserva: reserva.estadoReserva,
+                        estadoViaje: viaje.estadoViaje,
                         reserva,
                         viaje
                     });

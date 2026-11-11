@@ -24,6 +24,7 @@ exports.crear = async (req, res, next) => {
       return { reserva, viaje };
     });
     req.io?.emit(`reserva_creada_viaje_${viaje.idViaje}`, { idViaje: viaje.idViaje, idReserva: reserva.idReserva, reserva });
+    req.io?.emit(`asientos_actualizados_viaje_${viaje.idViaje}`, { idViaje: viaje.idViaje, asientosDisponibles: viaje.asientosDisponibles, viaje });
     res.status(201).json({ reserva: resumen(reserva), token, tipoPago: 'EFECTIVO' });
   } catch (error) { if (error.status) return res.status(error.status).json({ mensaje: error.message }); next(error); }
 };
@@ -48,7 +49,10 @@ exports.gestionar = cancelar => async (req, res, next) => {
       }
       return { reserva, viaje, invitado };
     });
-    if (cancelar) req.io?.emit(`reserva_cancelada_${resultado.reserva.idReserva}`, { idReserva: resultado.reserva.idReserva, idViaje: resultado.viaje.idViaje, reserva: resultado.reserva });
+    if (cancelar) {
+      req.io?.emit(`reserva_cancelada_${resultado.reserva.idReserva}`, { idReserva: resultado.reserva.idReserva, idViaje: resultado.viaje.idViaje, reserva: resultado.reserva });
+      req.io?.emit(`asientos_actualizados_viaje_${resultado.viaje.idViaje}`, { idViaje: resultado.viaje.idViaje, asientosDisponibles: resultado.viaje.asientosDisponibles, viaje: resultado.viaje });
+    }
     const ubicacion = resultado.invitado.latitud != null && resultado.invitado.longitud != null
       ? { latitud: Number(resultado.invitado.latitud), longitud: Number(resultado.invitado.longitud), precision: resultado.invitado.precision != null ? Number(resultado.invitado.precision) : null, actualizadaAt: resultado.invitado.ubicacionActualizadaAt }
       : null;

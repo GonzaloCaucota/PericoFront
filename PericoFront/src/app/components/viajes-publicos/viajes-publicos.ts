@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { API_URL } from '../../config/api';
 import { RecorridoService } from '../../services/recorrido.service';
+import { SocketService } from '../../services/socket.service';
 import { MapaRutaComponent, PuntoMapa } from '../mapa-ruta/mapa-ruta';
 import { Recorrido } from '../../../models/recorrido.model';
 
@@ -91,10 +92,12 @@ export interface ViajePublico {
       </div>
     </section>`
 })
-export class ViajesPublicos implements OnInit {
+export class ViajesPublicos implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private catalogo = inject(RecorridoService);
+  private socket = inject(SocketService, { optional: true });
   private cdr = inject(ChangeDetectorRef);
+  private eventosEscuchados = new Set<string>();
   recorridos: Recorrido[] = [];
   viajes: ViajePublico[] = [];
   idRecorrido = '';
@@ -208,11 +211,42 @@ export class ViajesPublicos implements OnInit {
     });
   }
   ngOnInit(): void {
+    this.escucharSocket('viaje_creado', () => this.buscar());
     this.catalogo.listar().subscribe({
       next: r => { this.recorridos = r; this.actualizarVista(); },
       error: () => { this.actualizarVista(); }
     });
     this.buscar();
+  }
+  ngOnDestroy(): void {
+    this.eventosEscuchados.forEach(evento => this.socket?.dejarDeEscuchar(evento));
+    this.eventosEscuchados.clear();
+  }
+  private escucharSocket<T>(evento: string, callback: (data: T) => void): void {
+    if (!this.socket) return;
+    this.eventosEscuchados.add(evento);
+    this.socket.escuchar<T>(evento, callback);
+  }
+  private registrarEventosViajes(): void {
+    this.viajes.forEach(v => {
+      this.escucharSocket<any>(`asientos_actualizados_viaje_${v.idViaje}`, data => {
+        const encontrado = this.viajes.find(item => Number(item.idViaje) === Number(data?.idViaje));
+        if (encontrado && data?.asientosDisponibles != null) {
+          encontrado.asientosDisponibles = Number(data.asientosDisponibles);
+          this.actualizarVista();
+        }
+      });
+      this.escucharSocket<any>(`viaje_actualizado_${v.idViaje}`, data => {
+        const encontrado = this.viajes.find(item => Number(item.idViaje) === Number(data?.idViaje));
+        if (encontrado && data?.estadoViaje) {
+          encontrado.estadoViaje = data.estadoViaje;
+        }
+        if (data?.estadoViaje && data.estadoViaje !== 'ABIERTO' && data.estadoViaje !== 'EN_CURSO') {
+          this.viajes = this.viajes.filter(item => Number(item.idViaje) !== Number(data?.idViaje));
+        }
+        this.actualizarVista();
+      });
+    });
   }
   buscar(): void {
     this.cargando = true;
@@ -220,7 +254,7 @@ export class ViajesPublicos implements OnInit {
     let params = new HttpParams();
     if (this.idRecorrido) params = params.set('idRecorrido', this.idRecorrido);
     this.http.get<ViajePublico[]>(`${API_URL}/viajes/publicos`, { params }).subscribe({
-      next: viajes => { this.viajes = viajes; this.cargando = false; this.actualizarVista(); },
+      next: viajes => { this.viajes = viajes; this.cargando = false; this.registrarEventosViajes(); this.actualizarVista(); },
       error: () => { this.viajes = []; this.cargando = false; this.error = 'No se pudieron cargar los viajes. Pulsa Actualizar viajes para reintentar.'; this.actualizarVista(); }
     });
   }
