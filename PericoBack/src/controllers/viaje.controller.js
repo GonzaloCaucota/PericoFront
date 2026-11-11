@@ -220,6 +220,15 @@ viajeCtrl.createViaje = async (req, res) => {
             idRecorrido: nuevoViaje.idRecorrido,
             viaje: viajeCreado
         });
+        if (choferExiste.latitud !== null && choferExiste.latitud !== undefined && choferExiste.longitud !== null && choferExiste.longitud !== undefined) {
+            req.io?.emit(`ubicacion_chofer_viaje_${nuevoViaje.idViaje}`, {
+                idViaje: nuevoViaje.idViaje,
+                idChofer: choferExiste.idChofer,
+                latitud: choferExiste.latitud,
+                longitud: choferExiste.longitud,
+                precision: choferExiste.precision
+            });
+        }
 
         res.status(201).json({ status: '1', msg: 'Viaje guardado de forma exitosa.', viaje: viajeCreado });
     } catch (error) {

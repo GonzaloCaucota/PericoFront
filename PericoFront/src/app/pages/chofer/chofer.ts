@@ -496,6 +496,7 @@ export class Chofer implements OnInit {
         this._toastr.success('Viaje creado correctamente.');
         this.loadViajes();
         this.loadChofer();
+        this.enviarUbicacion();
       },
       error: (err) => {
         this._toastr.error(err.error?.msg || 'Error al crear nuevo viaje.');
@@ -601,6 +602,7 @@ export class Chofer implements OnInit {
         this._toastr.success('Viaje iniciado correctamente.');
         this._changeDetectorRef.detectChanges();
         this.loadViajes();
+        this.enviarUbicacion();
       },
       error: (err) => {
         this._toastr.error('Error al iniciar viaje.');
@@ -706,6 +708,14 @@ export class Chofer implements OnInit {
         this.publicarUbicacion(ubicacion);
       })
       .catch((error) => {
+        if (this.latitud !== undefined && this.longitud !== undefined) {
+          this.publicarUbicacion({
+            latitud: this.latitud,
+            longitud: this.longitud,
+            precision: this.precision
+          });
+          return;
+        }
         console.error(error);
         this.errorUbicacion = 'No se pudo obtener la ubicacion del dispositivo.';
         this.cargandoUbicacion = false;
