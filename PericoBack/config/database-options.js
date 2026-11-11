@@ -20,6 +20,9 @@ module.exports = function databaseOptions(env = process.env) {
     url = parsed.toString();
   }
   const ca = env.DB_SSL_CA?.replace(/\\n/g, '\n') || (env.DB_SSL_CA_FILE ? fs.readFileSync(env.DB_SSL_CA_FILE, 'utf8') : undefined);
+  const rejectUnauthorized = env.DB_SSL_REJECT_UNAUTHORIZED !== undefined
+    ? env.DB_SSL_REJECT_UNAUTHORIZED === 'true'
+    : Boolean(ca);
   return {
     url,
     options: {
@@ -36,7 +39,7 @@ module.exports = function databaseOptions(env = process.env) {
         application_name: 'taxi-compartido',
         connectionTimeoutMillis: 10000,
         statement_timeout: 15000,
-        ...(ssl ? { ssl: { require: true, rejectUnauthorized: true, ...(ca ? { ca } : {}) } } : {}),
+        ...(ssl ? { ssl: { require: true, rejectUnauthorized, ...(ca ? { ca } : {}) } } : {}),
       },
     },
   };
