@@ -12,5 +12,5 @@ import { Footer } from './pages/layout/footer/footer';
   styleUrl: './app.scss'
 })
 export class App {
-  protected readonly title = signal('proyfrontendgrupo03');
+  protected readonly title = signal('PericoPerico');
 }
