@@ -184,9 +184,19 @@
         </div>
 
         <div class="map-actions">
+          <button
+            type="button"
+            class="btn btn-outline-success"
+            (click)="compartirMiUbicacion()"
+            [disabled]="enviandoUbicacion"
+          >
+            <i class="bi bi-crosshair me-2"></i>
+            {{ enviandoUbicacion ? 'Obteniendo...' : 'Compartir mi ubicacion' }}
+          </button>
+
           <button type="button" class="btn btn-light border" (click)="actualizarUbicacionChofer()">
             <i class="bi bi-arrow-clockwise me-2"></i>
-            Ver ubicacion
+            Ver ubicacion chofer
           </button>
 
           <button

@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PasajeroService, CrearReservaDto } from '../../services/pasajero.service';
 import { RutaService } from '../../services/ruta.service';
+import { GeolocationService } from '../../services/geolocalizacion.service';
 import { Pasajero } from '../../../models/pasajero.model';
 import { Viaje } from '../../../models/viaje.model';
 import { Reserva } from '../../../models/reserva.model';
@@ -47,6 +48,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
   public buscando = false;
   public mensaje = '';
   public cancelandoReserva = false;
+  public enviandoUbicacion = false;
 
   public puntoChofer?: PuntoMapa;
   public puntoPasajero?: PuntoMapa;
@@ -64,6 +66,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
     private _recorridoService: RecorridoService,
     private _pasajeroService: PasajeroService,
     private _rutaService: RutaService,
+    private _geolocationService: GeolocationService,
     private _changeDetectorRef: ChangeDetectorRef,
     private _socketService: SocketService,
     private _toastr: NotificacionesService
@@ -187,10 +190,12 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
         }
 
         this.mensaje = 'Reserva creada. El pago queda pendiente en efectivo.';
+        this._changeDetectorRef.detectChanges();
       },
       error: (err) => {
         this.mensaje = 'No se pudo crear la reserva.';
         console.error(err);
+        this._changeDetectorRef.detectChanges();
       }
     });
   }
@@ -268,6 +273,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
 
     if (!idChofer) {
       this.mensaje = 'No se encontro el chofer de la reserva activa.';
+      this._changeDetectorRef.detectChanges();
       return;
     }
 
@@ -275,6 +281,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
       next: (chofer: any) => {
         if (chofer.latitud === null || chofer.latitud === undefined || chofer.longitud === null || chofer.longitud === undefined) {
           this.mensaje = 'El chofer todavia no compartio su ubicacion.';
+          this._changeDetectorRef.detectChanges();
           return;
         }
 
@@ -290,30 +297,69 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
       error: (err) => {
         this.mensaje = 'No se pudo actualizar la ubicacion del chofer.';
         console.error(err);
+        this._changeDetectorRef.detectChanges();
       }
     });
+  }
+
+  compartirMiUbicacion(): void {
+    if (this.enviandoUbicacion) return;
+    this.enviandoUbicacion = true;
+    this.mensaje = '';
+    this._changeDetectorRef.detectChanges();
+
+    this._geolocationService.obtenerUbicacionActual()
+      .then((ubicacion) => {
+        this.puntoPasajero = {
+          latitud: ubicacion.latitud,
+          longitud: ubicacion.longitud,
+          etiqueta: 'Tu ubicacion',
+          tipo: 'pasajero'
+        };
+        this._changeDetectorRef.detectChanges();
+
+        this._pasajeroService.actualizarUbicacion(this.idPasajero, ubicacion).subscribe({
+          next: () => {
+            this.enviandoUbicacion = false;
+            this.mensaje = 'Ubicacion compartida con el chofer.';
+            this._changeDetectorRef.detectChanges();
+          },
+          error: (err) => {
+            this.enviandoUbicacion = false;
+            this.mensaje = err.error?.msg || 'No se pudo compartir tu ubicacion.';
+            this._changeDetectorRef.detectChanges();
+          }
+        });
+      })
+      .catch((err) => {
+        this.enviandoUbicacion = false;
+        this.mensaje = 'No se pudo obtener tu ubicacion actual.';
+        console.error(err);
+        this._changeDetectorRef.detectChanges();
+      });
   }
 
   comoLlegarAlChofer(): void {
     if (!this.puntoChofer) {
       this.actualizarUbicacionChofer();
       this.mensaje = 'Primero actualiza la ubicacion del chofer.';
+      this._changeDetectorRef.detectChanges();
       return;
     }
 
-    if (!navigator.geolocation) {
-      this.mensaje = 'Tu navegador no permite obtener tu ubicacion.';
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
+    this._geolocationService.obtenerUbicacionActual()
+      .then((ubicacion) => {
         this.puntoPasajero = {
-          latitud: position.coords.latitude,
-          longitud: position.coords.longitude,
+          latitud: ubicacion.latitud,
+          longitud: ubicacion.longitud,
           etiqueta: 'Tu ubicacion',
           tipo: 'pasajero'
         };
+        this._changeDetectorRef.detectChanges();
+
+        this._pasajeroService.actualizarUbicacion(this.idPasajero, ubicacion).subscribe({
+          error: () => {}
+        });
 
         this._rutaService.obtenerRuta(this.puntoPasajero, this.puntoChofer!).subscribe({
           next: (response) => {
@@ -323,19 +369,15 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
           error: (err) => {
             this.mensaje = 'No se pudo calcular la ruta.';
             console.error(err);
+            this._changeDetectorRef.detectChanges();
           }
         });
-      },
-      (err) => {
+      })
+      .catch((err) => {
         this.mensaje = 'No se pudo obtener tu ubicacion actual.';
         console.error(err);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 8000,
-        maximumAge: 0
-      }
-    );
+        this._changeDetectorRef.detectChanges();
+      });
   }
 
   getNombreChofer(viaje: ViajeCard): string {
@@ -377,6 +419,15 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
   }
 
   private sincronizarPuntoChoferDesdeReserva(): void {
+    if (this.pasajero?.latitud != null && this.pasajero?.longitud != null) {
+      this.puntoPasajero = {
+        latitud: Number(this.pasajero.latitud),
+        longitud: Number(this.pasajero.longitud),
+        etiqueta: 'Tu ubicacion',
+        tipo: 'pasajero'
+      };
+    }
+
     const chofer = this.reservaActiva?.viaje?.chofer;
 
     if (!chofer?.latitud || !chofer?.longitud) {
@@ -419,6 +470,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
     this.escucharEvento<any>(`pago_confirmado_reserva_${idReserva}`, (data) => {
       this.mensaje = 'El pago de tu reserva fue confirmado.';
       this._toastr.success('Pago en efectivo confirmado.');
+      this._changeDetectorRef.detectChanges();
       this.loadPasajero();
     });
 
@@ -428,6 +480,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
       this.puntoChofer = undefined;
       this.puntoPasajero = undefined;
       this.rutaGeoJson = undefined;
+      this._changeDetectorRef.detectChanges();
       this.loadPasajero();
       this.buscarViajes(true);
     });
@@ -467,6 +520,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit {
         this.mensaje = `El viaje cambio a estado ${data.estadoViaje}.`;
       }
 
+      this._changeDetectorRef.detectChanges();
       this.loadPasajero();
     });
 

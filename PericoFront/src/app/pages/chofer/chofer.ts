@@ -87,7 +87,11 @@ export class Chofer implements OnInit {
   ) {}
 
   get invitadosConUbicacion(): any[] {
-    return (this.viajeActual?.reservas || []).filter((r: any) => ['PENDIENTE', 'CONFIRMADA'].includes(r.estadoReserva) && r.invitado?.latitud != null && r.invitado?.longitud != null);
+    return (this.viajeActual?.reservas || []).filter((r: any) =>
+      ['PENDIENTE', 'CONFIRMADA'].includes(r.estadoReserva) &&
+      ((r.invitado?.latitud != null && r.invitado?.longitud != null) ||
+       (r.pasajero?.latitud != null && r.pasajero?.longitud != null))
+    );
   }
 
   get reservasPendientesPago(): any[] {
@@ -368,9 +372,39 @@ export class Chofer implements OnInit {
         );
 
         if (this.viajeActual?.reservas) {
-          this.viajeActual.reservas = this.viajeActual.reservas.filter((reserva) =>
-            reserva.estadoReserva !== 'CANCELADA'
-          );
+          this.viajeActual.reservas = this.viajeActual.reservas
+            .filter((reserva) => reserva.estadoReserva !== 'CANCELADA')
+            .map((reserva: any) => {
+              const origenUbicacion = reserva.invitado?.latitud != null && reserva.invitado?.longitud != null
+                ? {
+                    latitud: Number(reserva.invitado.latitud),
+                    longitud: Number(reserva.invitado.longitud),
+                    precision: reserva.invitado.precision,
+                    actualizadaAt: reserva.invitado.ubicacionActualizadaAt,
+                    nombre: reserva.invitado.nombre
+                  }
+                : reserva.pasajero?.latitud != null && reserva.pasajero?.longitud != null
+                  ? {
+                      latitud: Number(reserva.pasajero.latitud),
+                      longitud: Number(reserva.pasajero.longitud),
+                      precision: reserva.pasajero.precision,
+                      actualizadaAt: reserva.pasajero.updatedAt,
+                      nombre: `${reserva.pasajero.usuario?.nombre || 'Pasajero'} ${reserva.pasajero.usuario?.apellido || ''}`.trim()
+                    }
+                  : null;
+              return {
+                ...reserva,
+                ubicacionCompartida: origenUbicacion,
+                puntoMapaPasajero: origenUbicacion
+                  ? {
+                      latitud: origenUbicacion.latitud,
+                      longitud: origenUbicacion.longitud,
+                      etiqueta: origenUbicacion.nombre,
+                      tipo: 'pasajero' as const
+                    }
+                  : undefined
+              };
+            });
         }
 
         this.registrarEventosDeViajeActual();
@@ -665,6 +699,7 @@ export class Chofer implements OnInit {
     this.cargandoUbicacion = true;
     this.mensajeUbicacion = '';
     this.errorUbicacion = '';
+    this._changeDetectorRef.detectChanges();
 
     this._geolocationService.obtenerUbicacionActual()
       .then((ubicacion) => {
@@ -689,6 +724,7 @@ export class Chofer implements OnInit {
       etiqueta: 'Mi ubicacion',
       tipo: 'chofer'
     };
+    this._changeDetectorRef.detectChanges();
 
     this._choferService.actualizarUbicacion(this.idChofer, ubicacion).subscribe({
       next: () => {

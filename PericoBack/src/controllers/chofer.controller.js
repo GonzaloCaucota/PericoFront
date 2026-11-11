@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { sequelize, Usuario, Chofer, Auto, Viaje, Admin, HabilitacionChofer } = require('../models/relaciones');
 
 const choferCtrl = {};
@@ -405,21 +406,21 @@ choferCtrl.actualizarUbicacionChofer = async (req, res) => {
     chofer.precision = resultado.ubicacion.precision;
     await chofer.save();
 
-    const viajeActivo = await Viaje.findOne({
+    const viajesActivos = await Viaje.findAll({
       where: {
         idChofer: chofer.idChofer,
-        estado: 'EN_CURSO' 
-      }
+        estadoViaje: { [Op.in]: ['ABIERTO', 'COMPLETO', 'EN_CURSO'] },
+      },
     });
 
-    // SOLO EMITIMOS POR SOCKET SI EL CHOFER TIENE UN VIAJE EN CURSO
-    if (viajeActivo) {
-      req.io.emit(`ubicacion_chofer_viaje_${viajeActivo.idViaje}`, {
+    // Emitimos por socket a los viajes activos del chofer para actualizar el mapa de los pasajeros.
+    for (const viajeActivo of viajesActivos) {
+      req.io?.emit(`ubicacion_chofer_viaje_${viajeActivo.idViaje}`, {
         idChofer: chofer.idChofer,
         idViaje: viajeActivo.idViaje,
         latitud: chofer.latitud,
         longitud: chofer.longitud,
-        precision: chofer.precision
+        precision: chofer.precision,
       });
     }
 
@@ -498,7 +499,24 @@ choferCtrl.obtenerViajesDelChofer = async (req, res) => {
 
     const viajes = await Viaje.findAll({
       where: { idChofer: req.params.idChofer },
-      include: ['auto', { association: 'reservas', include: ['invitado'] }],
+      include: [
+        'auto',
+        {
+          association: 'reservas',
+          include: [
+            'invitado',
+            {
+              association: 'pasajero',
+              include: [
+                {
+                  association: 'usuario',
+                  attributes: { exclude: ['passwordHash'] },
+                },
+              ],
+            },
+          ],
+        },
+      ],
       order: [
         ['fechaSalida', 'DESC'],
         ['horaSalida', 'DESC'],

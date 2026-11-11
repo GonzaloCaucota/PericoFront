@@ -152,11 +152,16 @@
             </div>
 
             <section *ngIf="invitadosConUbicacion.length" class="mt-3">
-              <h6>Ubicacion de pasajeros invitados</h6>
+              <h6>Ubicacion de pasajeros</h6>
               <div *ngFor="let r of invitadosConUbicacion" class="mb-3">
-                <p class="mb-1">{{ r.invitado.nombre }} · Reserva #{{ r.idReserva }}</p>
-                <small>Actualizada: {{ r.invitado.ubicacionActualizadaAt | date:'short' }} · precision {{ r.invitado.precision }} m</small>
-                <app-mapa-ruta [idMapa]="'invitado-' + r.idReserva" [pasajero]="{ latitud: +r.invitado.latitud, longitud: +r.invitado.longitud, etiqueta: r.invitado.nombre, tipo: 'pasajero' }" />
+                <p class="mb-1">{{ r.ubicacionCompartida?.nombre || r.invitado?.nombre || 'Pasajero' }} · Reserva #{{ r.idReserva }}</p>
+                <small *ngIf="r.ubicacionCompartida?.actualizadaAt || r.invitado?.ubicacionActualizadaAt">
+                  Actualizada: {{ (r.ubicacionCompartida?.actualizadaAt || r.invitado?.ubicacionActualizadaAt) | date:'short' }} · precision {{ r.ubicacionCompartida?.precision ?? r.invitado?.precision }} m
+                </small>
+                <app-mapa-ruta
+                  [idMapa]="'invitado-' + r.idReserva"
+                  [pasajero]="r.puntoMapaPasajero || { latitud: +(r.invitado?.latitud ?? r.pasajero?.latitud), longitud: +(r.invitado?.longitud ?? r.pasajero?.longitud), etiqueta: r.invitado?.nombre || 'Pasajero', tipo: 'pasajero' }"
+                />
               </div>
             </section>
 
@@ -173,6 +178,7 @@
                 <div>
                   <div class="fw-semibold">Reserva #{{ reservaPendiente.idReserva }}</div>
                   <p *ngIf="reservaPendiente.invitado" class="mb-1">{{ reservaPendiente.invitado.nombre }} · {{ reservaPendiente.invitado.telefono }} (invitado)</p>
+                  <p *ngIf="reservaPendiente.pasajero?.usuario" class="mb-1">{{ reservaPendiente.pasajero.usuario.nombre }} {{ reservaPendiente.pasajero.usuario.apellido }} · {{ reservaPendiente.pasajero.usuario.telefono }}</p>
                   <small class="text-muted">
                     {{ reservaPendiente.cantidadAsientos }} asiento(s) · {{ reservaPendiente.estadoPago }}
                   </small>
@@ -525,6 +531,13 @@
         <i class="bi bi-crosshair me-2"></i>
         {{ cargandoUbicacion ? 'Enviando ubicación...' : 'Enviar mi ubicación actual' }}
       </button>
+    </div>
+
+    <div class="alert alert-success mt-3 mb-0 py-2" role="status" *ngIf="mensajeUbicacion">
+      {{ mensajeUbicacion }}
+    </div>
+    <div class="alert alert-warning mt-3 mb-0 py-2" role="alert" *ngIf="errorUbicacion">
+      {{ errorUbicacion }}
     </div>
 
     @if (puntoChofer) {

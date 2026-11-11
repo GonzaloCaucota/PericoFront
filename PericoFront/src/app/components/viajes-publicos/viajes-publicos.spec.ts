@@ -88,9 +88,44 @@ describe('Ubicacion de invitado', () => {
     expect(component.puntoPasajero).toBeUndefined();
     http.verify();
   });
+  for (const codigo of [2, 3]) {
+    it(`reintenta sin alta precision cuando falla con codigo ${codigo}`, () => {
+      const component = TestBed.createComponent(ViajesPublicos).componentInstance;
+      component.tokenReserva = 'a'.repeat(64);
+      const opciones: PositionOptions[] = [];
+      Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+        getCurrentPosition: (success: any, failure: any, options: PositionOptions) => {
+          opciones.push(options);
+          if (options.enableHighAccuracy) failure({ code: codigo });
+          else success({ coords: { latitude: -24.2, longitude: -65.3, accuracy: 500 } });
+        }
+      } });
+      component.compartirUbicacion();
+      expect(opciones.map(o => o.enableHighAccuracy)).toEqual([true, false]);
+      const http = TestBed.inject(HttpTestingController);
+      const req = http.expectOne(`${API_URL}/reservas/invitado/ubicacion`);
+      expect(req.request.body.precision).toBe(500);
+      req.flush({ compartiendo: true });
+      expect(component.localizando).toBe(false);
+      expect(component.mensajeUbicacion).toContain('Ubicacion compartida');
+      http.verify();
+    });
+    it(`informa el fallo final con codigo ${codigo} sin enviar coordenadas`, () => {
+      const component = TestBed.createComponent(ViajesPublicos).componentInstance;
+      let intentos = 0;
+      Object.defineProperty(navigator, 'geolocation', { configurable: true, value: {
+        getCurrentPosition: (_: any, failure: any) => { intentos++; failure({ code: codigo }); }
+      } });
+      component.compartirUbicacion();
+      expect(intentos).toBe(2);
+      expect(component.localizando).toBe(false);
+      expect(component.mensajeUbicacion).toContain(codigo === 3 ? 'tardo demasiado' : 'no pudo determinar');
+      TestBed.inject(HttpTestingController).verify();
+    });
+  }
   it('respeta el permiso denegado sin enviar coordenadas', () => {
     const component = TestBed.createComponent(ViajesPublicos).componentInstance;
-    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (_: any, failure: any) => failure({ code: 1 }) } });
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: (_: any, failure: any, options: PositionOptions) => { expect(options.enableHighAccuracy).toBe(true); failure({ code: 1 }); } } });
     component.compartirUbicacion();
     expect(component.mensajeUbicacion).toContain('No diste permiso');
     expect(component.localizando).toBe(false);

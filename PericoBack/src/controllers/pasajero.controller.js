@@ -1,3 +1,4 @@
+const { Op } = require('sequelize');
 const { sequelize, Usuario, Pasajero, Reserva, Viaje, Chofer, Auto } = require('../models/relaciones');
 
 const pasajeroCtrl = {};
@@ -332,6 +333,23 @@ pasajeroCtrl.actualizarUbicacionPasajero = async (req, res) => {
     pasajero.longitud = resultado.ubicacion.longitud;
     pasajero.precision = resultado.ubicacion.precision;
     await pasajero.save();
+
+    const reservasActivas = await Reserva.findAll({
+      where: {
+        idPasajero: pasajero.idPasajero,
+        estadoReserva: { [Op.in]: ['PENDIENTE', 'CONFIRMADA'] },
+      },
+    });
+    for (const reserva of reservasActivas) {
+      req.io?.emit(`ubicacion_invitado_viaje_${reserva.idViaje}`, {
+        idViaje: reserva.idViaje,
+        idReserva: reserva.idReserva,
+        idPasajero: pasajero.idPasajero,
+        latitud: pasajero.latitud,
+        longitud: pasajero.longitud,
+        precision: pasajero.precision,
+      });
+    }
 
     return res.status(200).json({
       status: '1',

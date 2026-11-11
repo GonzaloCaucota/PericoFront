@@ -110,16 +110,41 @@ export class ViajesPublicos implements OnInit {
   }
   localizando = false;
   mensajeUbicacion = '';
+  private actualizarVista(): void {
+    this.cdr.markForCheck();
+    this.cdr.detectChanges();
+  }
   compartirUbicacion(): void {
-    if (!navigator.geolocation) { this.mensajeUbicacion = 'Tu navegador no permite obtener ubicacion.'; return; }
+    if (this.localizando) return;
+    if (!navigator.geolocation) { this.mensajeUbicacion = 'Tu navegador no permite obtener ubicacion.'; this.actualizarVista(); return; }
     this.localizando = true;
+    this.mensajeUbicacion = '';
+    this.actualizarVista();
+    this.obtenerUbicacion(true);
+  }
+  private obtenerUbicacion(altaPrecision: boolean): void {
     navigator.geolocation.getCurrentPosition(
       p => this.enviarUbicacion({ compartir: true, latitud: p.coords.latitude, longitud: p.coords.longitude, precision: p.coords.accuracy }),
-      error => { this.localizando = false; this.mensajeUbicacion = error.code === 1 ? 'No diste permiso. Puedes continuar sin compartir ubicacion.' : 'No se pudo obtener tu ubicacion. Intenta nuevamente.'; this.cdr.markForCheck(); },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      error => {
+        // Si no consigue una posicion precisa, permitir que el navegador use otra fuente.
+        if (altaPrecision && (error.code === 2 || error.code === 3)) {
+          this.mensajeUbicacion = 'Buscando una ubicacion aproximada…';
+          this.actualizarVista();
+          this.obtenerUbicacion(false);
+          return;
+        }
+        this.localizando = false;
+        this.mensajeUbicacion = error.code === 1
+          ? 'No diste permiso. Habilita la ubicacion para este sitio en tu navegador y vuelve a intentar.'
+          : error.code === 3
+            ? 'La busqueda de ubicacion tardo demasiado. Verifica que la ubicacion del dispositivo este activada y vuelve a intentar.'
+            : 'Tu dispositivo no pudo determinar la ubicacion. Activa la ubicacion del dispositivo, verifica tu conexion y vuelve a intentar.';
+        this.actualizarVista();
+      },
+      { enableHighAccuracy: altaPrecision, timeout: altaPrecision ? 10000 : 20000, maximumAge: altaPrecision ? 0 : 300000 }
     );
   }
-  retirarUbicacion(): void { this.localizando = true; this.enviarUbicacion({ compartir: false }); }
+  retirarUbicacion(): void { this.localizando = true; this.actualizarVista(); this.enviarUbicacion({ compartir: false }); }
   private enviarUbicacion(body: { compartir: boolean; latitud?: number; longitud?: number; precision?: number }): void {
     this.http.patch<any>(`${API_URL}/reservas/invitado/ubicacion`, body, { headers: { 'X-Reserva-Token': this.tokenReserva.trim() } }).subscribe({
       next: data => {
@@ -128,8 +153,8 @@ export class ViajesPublicos implements OnInit {
           longitud: Number(data.ubicacion?.longitud ?? body.longitud),
           etiqueta: 'Tu ubicacion', tipo: 'pasajero'
         } : undefined;
-        this.localizando = false; this.mensajeUbicacion = data.compartiendo ? 'Ubicacion compartida con el chofer. Actualizala si cambias de lugar.' : 'Tu ubicacion fue retirada.'; this.cdr.markForCheck(); },
-      error: err => { this.localizando = false; this.mensajeUbicacion = err.error?.mensaje || 'No se pudo actualizar la ubicacion.'; this.cdr.markForCheck(); }
+        this.localizando = false; this.mensajeUbicacion = data.compartiendo ? 'Ubicacion compartida con el chofer. Actualizala si cambias de lugar.' : 'Tu ubicacion fue retirada.'; this.actualizarVista(); },
+      error: err => { this.localizando = false; this.mensajeUbicacion = err.error?.mensaje || 'No se pudo actualizar la ubicacion.'; this.actualizarVista(); }
     });
   }
   nombre = '';
@@ -151,8 +176,8 @@ export class ViajesPublicos implements OnInit {
         this.nombre = ''; this.telefono = '';
         this.enviando = false;
         this.mensajeReserva = 'Reserva creada. Guarda tu comprobante para consultarla desde otro dispositivo.';
-        this.buscar(); this.cdr.markForCheck();
-      }, error: err => { this.enviando = false; this.mensajeReserva = err.error?.mensaje || 'No se pudo crear la reserva.'; this.cdr.markForCheck(); }
+        this.buscar(); this.actualizarVista();
+      }, error: err => { this.enviando = false; this.mensajeReserva = err.error?.mensaje || 'No se pudo crear la reserva.'; this.actualizarVista(); }
     });
   }
   consultarReserva(): void { this.gestionarReserva(false); }
@@ -166,14 +191,26 @@ export class ViajesPublicos implements OnInit {
     const options = { headers: { 'X-Reserva-Token': this.tokenReserva.trim() } };
     const request = cancelar ? this.http.patch<any>(`${API_URL}/reservas/invitado/cancelar`, {}, options) : this.http.get<any>(`${API_URL}/reservas/invitado`, options);
     request.subscribe({
-      next: data => { this.comprobante = data.reserva; this.enviando = false; this.mensajeReserva = cancelar ? 'Reserva cancelada.' : ''; localStorage.setItem('reserva-invitado-token', this.tokenReserva.trim()); if (cancelar) this.buscar(); this.cdr.markForCheck(); },
-      error: err => { this.enviando = false; this.mensajeReserva = err.error?.mensaje || 'No se pudo consultar la reserva.'; this.cdr.markForCheck(); }
+      next: data => {
+        this.comprobante = data.reserva;
+        if (cancelar) {
+          this.puntoPasajero = undefined;
+        } else if (data.ubicacion?.latitud != null && data.ubicacion?.longitud != null) {
+          this.puntoPasajero = { latitud: Number(data.ubicacion.latitud), longitud: Number(data.ubicacion.longitud), etiqueta: 'Tu ubicacion', tipo: 'pasajero' };
+        }
+        this.enviando = false;
+        this.mensajeReserva = cancelar ? 'Reserva cancelada.' : '';
+        localStorage.setItem('reserva-invitado-token', this.tokenReserva.trim());
+        if (cancelar) this.buscar();
+        this.actualizarVista();
+      },
+      error: err => { this.enviando = false; this.mensajeReserva = err.error?.mensaje || 'No se pudo consultar la reserva.'; this.actualizarVista(); }
     });
   }
   ngOnInit(): void {
     this.catalogo.listar().subscribe({
-      next: r => { this.recorridos = r; this.cdr.markForCheck(); },
-      error: () => { this.cdr.markForCheck(); }
+      next: r => { this.recorridos = r; this.actualizarVista(); },
+      error: () => { this.actualizarVista(); }
     });
     this.buscar();
   }
@@ -183,8 +220,8 @@ export class ViajesPublicos implements OnInit {
     let params = new HttpParams();
     if (this.idRecorrido) params = params.set('idRecorrido', this.idRecorrido);
     this.http.get<ViajePublico[]>(`${API_URL}/viajes/publicos`, { params }).subscribe({
-      next: viajes => { this.viajes = viajes; this.cargando = false; this.cdr.markForCheck(); },
-      error: () => { this.viajes = []; this.cargando = false; this.error = 'No se pudieron cargar los viajes. Pulsa Actualizar viajes para reintentar.'; this.cdr.markForCheck(); }
+      next: viajes => { this.viajes = viajes; this.cargando = false; this.actualizarVista(); },
+      error: () => { this.viajes = []; this.cargando = false; this.error = 'No se pudieron cargar los viajes. Pulsa Actualizar viajes para reintentar.'; this.actualizarVista(); }
     });
   }
 }

@@ -22,13 +22,17 @@ const server = http.createServer(app); // crear un servidor http envolviendo a e
 const io = new Server(server, {
   cors: {
     origin: allowedOrigin,
-    methods: ["GET", "POST", "PUT", "DELETE"]
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
   }
 });
 
 const eventos = require('./src/services/realtime')(io);
 
-app.use(cors({ origin: allowedOrigin }));
+app.use(cors({
+  origin: allowedOrigin,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Reserva-Token']
+}));
 app.use(express.json());
 
 // Permite que los controladores puedan emitir eventos sin importar desde que ruta se ejecuten.

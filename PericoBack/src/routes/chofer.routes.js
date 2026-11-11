@@ -11,7 +11,12 @@ router.post('/', choferCtrl.registrarChofer);
 // Frontend: trae datos completos del chofer.
 router.get('/:idChofer/estadisticas', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN', 'CHOFER'), propietario, require('../controllers/estadisticas.controller').obtener('choferes'));
 
-router.get('/:idChofer', authCtrl.verifyToken, propietario, choferCtrl.obtenerChoferPorId);
+const lecturaChofer = (req, res, next) => {
+  if (req.usuario?.rol === 'ADMIN' || req.usuario?.rol === 'PASAJERO') return next();
+  return propietario(req, res, next);
+};
+
+router.get('/:idChofer', authCtrl.verifyToken, lecturaChofer, choferCtrl.obtenerChoferPorId);
 
 // Frontend: cambia el estado del chofer (DISPONIBLE, DESCANSO, EN_VIAJE, etc.).
 router.patch('/:idChofer/estado', authCtrl.verifyToken, propietario, choferCtrl.cambiarEstadoChofer);

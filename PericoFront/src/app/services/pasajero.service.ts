@@ -60,4 +60,11 @@ export class PasajeroService {
   cancelarReserva(idReserva: number): Observable<any> {
     return this._http.patch<any>(`${this.baseUrl}/reservas/${idReserva}/cancelar`, {});
   }
+
+  actualizarUbicacion(
+    idPasajero: number,
+    ubicacion: { latitud: number; longitud: number; precision?: number }
+  ): Observable<any> {
+    return this._http.patch<any>(`${this.baseUrl}/pasajeros/${idPasajero}/ubicacion`, ubicacion);
+  }
 }

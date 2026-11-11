@@ -46,10 +46,13 @@ exports.gestionar = cancelar => async (req, res, next) => {
         if (viaje.estadoViaje === 'COMPLETO') viaje.estadoViaje = 'ABIERTO';
         await reserva.save({ transaction }); await viaje.save({ transaction });
       }
-      return { reserva, viaje };
+      return { reserva, viaje, invitado };
     });
     if (cancelar) req.io?.emit(`reserva_cancelada_${resultado.reserva.idReserva}`, { idReserva: resultado.reserva.idReserva, idViaje: resultado.viaje.idViaje, reserva: resultado.reserva });
-    res.json({ reserva: resumen(resultado.reserva), viaje: { origen: resultado.viaje.origen, destino: resultado.viaje.destino, fechaSalida: resultado.viaje.fechaSalida, horaSalida: resultado.viaje.horaSalida } });
+    const ubicacion = resultado.invitado.latitud != null && resultado.invitado.longitud != null
+      ? { latitud: Number(resultado.invitado.latitud), longitud: Number(resultado.invitado.longitud), precision: resultado.invitado.precision != null ? Number(resultado.invitado.precision) : null, actualizadaAt: resultado.invitado.ubicacionActualizadaAt }
+      : null;
+    res.json({ reserva: resumen(resultado.reserva), viaje: { origen: resultado.viaje.origen, destino: resultado.viaje.destino, fechaSalida: resultado.viaje.fechaSalida, horaSalida: resultado.viaje.horaSalida }, ubicacion });
   } catch (error) { if (error.status) return res.status(error.status).json({ mensaje: error.message }); next(error); }
 };
 
@@ -59,8 +62,11 @@ exports.ubicacion = async (req, res, next) => {
     const token = req.headers['x-reserva-token'];
     if (typeof token !== 'string' || !/^[a-f0-9]{64}$/.test(token)) throw fallo(401, 'Comprobante no valido.');
     const borrar = req.body.compartir === false;
-    const { latitud, longitud, precision } = req.body;
-    if (!borrar && (req.body.compartir !== true || ![latitud, longitud, precision].every(v => typeof v === 'number' && Number.isFinite(v)) || Math.abs(latitud) > 90 || Math.abs(longitud) > 180 || precision < 0 || precision > 1000000)) throw fallo(400, 'Ubicacion no valida.');
+    const latitud = Number(req.body.latitud);
+    const longitud = Number(req.body.longitud);
+    const precisionRaw = req.body.precision === undefined || req.body.precision === null ? 0 : Number(req.body.precision);
+    const precision = Number.isFinite(precisionRaw) ? Math.min(precisionRaw, 99999999) : NaN;
+    if (!borrar && (req.body.compartir !== true || ![latitud, longitud, precision].every(v => Number.isFinite(v)) || Math.abs(latitud) > 90 || Math.abs(longitud) > 180 || precision < 0)) throw fallo(400, 'Ubicacion no valida.');
     const resultado = await sequelize.transaction(async transaction => {
       const invitado = await Invitado.findOne({ where: { tokenHash: hash(token) }, transaction });
       if (!invitado) throw fallo(401, 'Comprobante no valido.');
