@@ -134,10 +134,10 @@ adminCtrl.getDashboard = async (req, res) => {
     const totalPasajeros = await Pasajero.count();
     const totalChoferes = await Chofer.count();
     const totalAutos = await Auto.count();
-    const totalViajes = await Viaje.count();
+    const totalViajes = await Viaje.unscoped().count();
     const totalReservas = await Reserva.count();
 
-    const viajesPorEstado = await Viaje.findAll({
+    const viajesPorEstado = await Viaje.unscoped().findAll({
       attributes: [
         'estadoViaje',
         [fn('COUNT', col('estadoViaje')), 'cantidad'],
