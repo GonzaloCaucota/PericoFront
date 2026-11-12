@@ -1,152 +1,92 @@
-<main class="container-fluid my-5 px-3 px-lg-5 fade-in">
-  
-  <div class="row justify-content-center mb-5">
-    <div class="col-12 col-md-8 text-center">
-      <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2 fw-bold mb-3 tracking-wide small shadow-sm">CONECTANDO LA CIUDAD</span>
-      <h1 class="fw-bolder text-dark mb-3 display-4">Viajá seguro, viajá con <span class="text-primary">Perico-Perico</span></h1>
-      <p class="text-muted fs-5 lh-lg px-lg-5">Tu alternativa rápida y confiable para moverte desde tu ciudad a otra. Reserva tu viaje en segundos.</p>
+<main class="landing">
+  <section class="hero landing-width" aria-labelledby="home-titulo">
+    <div class="hero-copy">
+      <span class="eyebrow"><span class="status-dot"></span> UNIMOS CAMINOS EN JUJUY</span>
+      <h1 id="home-titulo">Tu próximo destino,<br><span>más cerca.</span></h1>
+      <p class="hero-description">Compartí el viaje entre San Salvador de Jujuy, Perico y El Carmen. Elegí tu recorrido, encontrá un asiento y empezá a moverte.</p>
+      <div class="hero-actions">
+        <a routerLink="/viajes" class="landing-button button-primary">Buscar mi viaje <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+        <a href="/Home#como-funciona" class="text-link">¿Cómo funciona? <i class="bi bi-arrow-down" aria-hidden="true"></i></a>
+      </div>
+      <p class="hero-note"><i class="bi bi-check-circle" aria-hidden="true"></i> Podés reservar sin crear una cuenta.</p>
     </div>
-  </div>
-
-  <app-viajes-publicos />
-
-  <section class="mb-5" aria-labelledby="recorridosTitulo">
-    <h2 id="recorridosTitulo" class="h3 fw-bold mb-3">Nuestros recorridos</h2>
-    <p>San Salvador de Jujuy, Perico y El Carmen. Opciones de ida y vuelta.</p>
-    <p class="text-muted" *ngIf="errorRecorridos">{{ errorRecorridos }}</p>
-    <div class="row g-3">
-      <article class="col-md-6" *ngFor="let recorrido of recorridos">
-        <div class="card h-100 p-4 border rounded-4">
-          <h3 class="h5">{{ recorrido.origen }} ↔ {{ recorrido.destino }}</h3>
-          <p class="mb-1"><strong>Salida desde San Salvador:</strong> {{ recorrido.paradaOrigen.nombre }}</p>
-          <p class="mb-1"><strong>Llegada:</strong> {{ recorrido.paradaDestino.nombre }}</p>
-          <small class="text-muted" *ngIf="!recorrido.paradaDestino.ubicacionConfirmada">Punto de llegada aproximado; confirmar con el chofer.</small>
-          <a routerLink="/viajes" class="btn btn-outline-primary mt-3">Buscar viajes</a>
-        </div>
-      </article>
+    <div class="journey-art" role="img" aria-label="Ilustración de un camino entre San Salvador de Jujuy, Perico y El Carmen">
+      <div class="art-heading"><span><i class="bi bi-geo-alt-fill" aria-hidden="true"></i> DE ACÁ, PARA VOS</span><span>JUJUY · ARGENTINA</span></div>
+      <svg viewBox="0 0 520 390" class="journey-landscape" aria-hidden="true" focusable="false">
+        <circle cx="414" cy="76" r="35" fill="#f3c65b" />
+        <path d="M0 227 109 76 216 221 302 121 430 246 520 157V390H0Z" fill="#c6d8ce" />
+        <path d="m0 277 115-119 129 122 89-83 187 109v84H0Z" fill="#9cb7ac" />
+        <path d="M0 321c119-86 189-70 281-9s163 45 239-3v81H0Z" fill="#6e9587" />
+        <path d="M42 390c0-62 120-50 136-102s-52-64-10-104 106-3 126-44" fill="none" stroke="#f9f6eb" stroke-width="39" />
+        <path d="M42 390c0-62 120-50 136-102s-52-64-10-104 106-3 126-44" fill="none" stroke="#c2bba9" stroke-width="2" stroke-dasharray="7 10" />
+        <g transform="translate(150 255) rotate(17)">
+          <rect x="-16" y="-9" width="6" height="14" rx="2" fill="#233b3b" /><rect x="10" y="-9" width="6" height="14" rx="2" fill="#233b3b" />
+          <rect x="-16" y="21" width="6" height="14" rx="2" fill="#233b3b" /><rect x="10" y="21" width="6" height="14" rx="2" fill="#233b3b" />
+          <rect x="-14" y="-23" width="28" height="62" rx="10" fill="#efbc4e" />
+          <path d="M-10-7H10L8 6H-8Z" fill="#294a52" /><rect x="-9" y="12" width="18" height="13" rx="3" fill="#f6d98f" />
+          <path d="M-10 29H10L9 34H-9Z" fill="#294a52" /><rect x="-10" y="-19" width="6" height="4" rx="1" fill="#fff3ca" /><rect x="4" y="-19" width="6" height="4" rx="1" fill="#fff3ca" />
+        </g>
+        <g fill="#42685c"><path d="m65 228 13-31 13 31h-9v14h-8v-14Z" /><path d="m344 305 16-39 16 39h-12v19h-8v-19Z" /><path d="m397 260 12-31 12 31h-9v14h-6v-14Z" /></g>
+      </svg>
+      <div class="map-label label-jujuy"><span class="map-dot"></span><span>San Salvador<small>de Jujuy</small></span></div>
+      <div class="map-label label-perico"><span class="map-dot"></span>Perico</div>
+      <div class="map-label label-carmen"><span class="map-dot"></span>El Carmen</div>
+      <div class="art-footer"><span class="art-icon"><i class="bi bi-people" aria-hidden="true"></i></span><div>El camino es mejor compartido.<small>Recorridos locales, nuevas conexiones.</small></div><i class="bi bi-arrow-up-right" aria-hidden="true"></i></div>
     </div>
   </section>
 
-  <div class="row g-4 mb-4">
-    
-    <div class="col-md-6">
-      <div class="card card-custom h-100 p-4 p-lg-5 bg-white border-0 position-relative overflow-hidden">
-
-        <div class="position-absolute top-0 end-0 p-4 opacity-25" style="transform: translate(20px, -20px);">
-          <i class="bi bi-person-fill display-1 text-primary"></i>
-        </div>
-        
-        <div class="position-relative z-1">
-          <div class="bg-primary bg-opacity-10 text-primary rounded-custom d-inline-flex align-items-center justify-content-center p-3 mb-4 shadow-sm">
-            <i class="bi bi-shield-check fs-2"></i>
-          </div>
-          <h3 class="fw-bold mb-3 text-dark">Para Pasajeros</h3>
-          <p class="text-muted mb-4 fs-6 lh-lg">Viaja con total tranquilidad. Conductores verificados, vehículos en excelente estado y seguimiento en tiempo real de tu ruta.</p>
-          
-          <div class="d-flex flex-column gap-3 mb-5">
-            <div class="d-flex align-items-center text-secondary fw-medium">
-              <i class="bi bi-check2-circle text-primary fs-5 me-3"></i> Facturación corporativa
-            </div>
-            <div class="d-flex align-items-center text-secondary fw-medium">
-              <i class="bi bi-check2-circle text-primary fs-5 me-3"></i> Soporte 24/7 en Perico
-            </div>
-          </div>
-
-          <div class="mt-auto">
-            <button class="btn btn-custom btn-outline-primary w-100 py-3 fw-bold hover-scale d-flex justify-content-center align-items-center gap-2" [routerLink]="['/registro']" [queryParams]="{ tipo: 'pasajero' }">
-              Registrarme<i class="bi bi-arrow-right"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-6">
-      <div class="card card-custom h-100 p-4 p-lg-5 bg-primary text-white border-0 position-relative overflow-hidden">
-        <div class="position-absolute top-0 end-0 p-4 opacity-25" style="transform: translate(20px, -20px);">
-          <i class="bi bi-car-front-fill display-1 text-white"></i>
-        </div>
-        
-        <div class="position-relative z-1">
-          <div class="d-flex justify-content-between align-items-start mb-4">
-            <div class="bg-white bg-opacity-25 rounded-custom d-inline-flex align-items-center justify-content-center p-3 shadow-sm">
-              <i class="bi bi-wallet2 fs-2 text-white"></i>
-            </div>
-            <span class="badge bg-warning text-dark px-3 py-2 rounded-custom fw-bold shadow-sm d-flex align-items-center gap-1">
-              <i class="bi bi-star-fill"></i> OPORTUNIDAD
-            </span>
-          </div>
-          <h3 class="fw-bold mb-3 text-white">Únete como Conductor</h3>
-          <p class="mb-4 text-white text-opacity-75 fs-6 lh-lg">Maximiza tus ingresos con nuestra red local. Acceso a viajes de alto valor, herramientas de gestión y pagos garantizados.</p>
-          
-          <div class="d-flex flex-column gap-3 mb-5">
-            <div class="d-flex align-items-center text-white text-opacity-75 fw-medium">
-              <i class="bi bi-check2-circle text-warning fs-5 me-3"></i> Pagos semanales puntuales
-            </div>
-            <div class="d-flex align-items-center text-white text-opacity-75 fw-medium">
-              <i class="bi bi-check2-circle text-warning fs-5 me-3"></i> Horarios 100% flexibles
-            </div>
-          </div>
-
-          <div class="mt-auto d-flex flex-column flex-xl-row gap-3">
-            <button [routerLink]="['/registro']" [queryParams]="{ tipo: 'chofer' }" class="btn btn-custom btn-light text-primary w-100 py-3 fw-bold shadow-custom hover-scale d-flex justify-content-center align-items-center gap-2">
-              Registrarme<i class="bi bi-arrow-right"></i>
-            </button>
-            <button class="btn btn-custom btn-outline-light w-100 py-3 fw-bold hover-scale" 
-                    data-bs-toggle="modal" 
-                    data-bs-target="#requisitosModal">
-              Ver requisitos
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
+  <div class="benefits-strip landing-width" aria-label="Opciones para viajar">
+    <span><i class="bi bi-person-check" aria-hidden="true"></i> Reservá con o sin cuenta</span>
+    <span><i class="bi bi-cash-coin" aria-hidden="true"></i> Pagá en efectivo al chofer</span>
+    <span><i class="bi bi-signpost-2" aria-hidden="true"></i> Recorridos de ida y vuelta</span>
   </div>
-  <section class="card-custom bg-white p-4 p-lg-5 mb-5 border-0">
-    <div class="row align-items-center g-5">
-      
-      <div class="col-lg-6 pe-lg-4">
-        <h2 class="fw-bold text-dark mb-4 display-6">Tu viaje al instante</h2>
-        
-        <ul class="list-unstyled mb-5 d-flex flex-column gap-4">
-          <li class="d-flex align-items-start gap-3">
-            <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3 d-flex align-items-center justify-content-center">
-              <i class="bi bi-geo-fill fs-5"></i>
-            </div>
-            <div>
-              <h5 class="fw-bold mb-1 text-dark">Ubicación precisa</h5>
-              <p class="text-muted mb-0">Encuentra el punto de partida exacto en el mapa interactivo.</p>
-            </div>
-          </li>
-          <li class="d-flex align-items-start gap-3">
-            <div class="bg-success bg-opacity-10 text-success rounded-circle p-3 d-flex align-items-center justify-content-center">
-              <i class="bi bi-clock-fill fs-5"></i>
-            </div>
-            <div>
-              <h5 class="fw-bold mb-1 text-dark">Cero demoras</h5>
-              <p class="text-muted mb-0">Verifica si hay disponibilidad de conductores para viajar.</p>
-            </div>
-          </li>
-        </ul>
 
-        <button class="btn btn-custom btn-primary-custom px-5 py-3 fw-bold fs-6 shadow-sm d-inline-flex align-items-center gap-2 hover-scale">
-          <i class="bi bi-car-front-fill"></i> Reservar un Viaje
-        </button>
-      </div>
-      
-      <div class="col-lg-6">
-        <div class="rounded-custom shadow-custom overflow-hidden position-relative border border-5 border-white ratio ratio-4x3 bg-light">
-          <iframe 
-            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d28935.169475335588!2d-65.1378144!3d-24.3828956!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x941b089c89280d99%3A0xc3f8e5c1e34f6!2sPerico%2C%20Jujuy!5e0!3m2!1ses!2sar!4v1700000000000!5m2!1ses!2sar" 
-            class="border-0 w-100 h-100" 
-            allowfullscreen="" 
-            loading="lazy" 
-            referrerpolicy="no-referrer-when-downgrade">
-          </iframe>
-        </div>
+  <section id="como-funciona" class="how-section landing-width" aria-labelledby="como-titulo">
+    <div class="section-heading"><div><span class="eyebrow">ASÍ DE SIMPLE</span><h2 id="como-titulo">Menos vueltas. Más camino.</h2></div><p>Tu próximo viaje empieza con tres pasos.</p></div>
+    <ol class="steps-grid">
+      <li><span class="step-number">01</span><h3>Elegí tu destino</h3><p>Consultá los recorridos, horarios, precios y asientos disponibles antes de reservar.</p></li>
+      <li><span class="step-number">02</span><h3>Reservá tu lugar</h3><p>Ingresá con tu cuenta o reservá como invitado con tu nombre y teléfono. Guardá tu comprobante.</p></li>
+      <li><span class="step-number">03</span><h3>Encontrate y viajá</h3><p>Revisá el punto de salida y pagá en efectivo al chofer. Podés compartir tu ubicación para que te encuentre.</p></li>
+    </ol>
+  </section>
+
+  <section class="routes-section" aria-labelledby="recorridosTitulo">
+    <div class="landing-width">
+      <div class="section-heading"><div><span class="eyebrow">CERCA DE LO QUE IMPORTA</span><h2 id="recorridosTitulo">Unimos tus destinos de siempre.</h2></div><p>San Salvador de Jujuy, Perico y El Carmen.<br>Opciones de ida y vuelta.</p></div>
+      <p class="route-error" role="status" *ngIf="errorRecorridos">{{ errorRecorridos }}</p>
+      <div class="routes-grid">
+        <article class="route-card" *ngFor="let recorrido of recorridos">
+          <div class="route-card-top"><span class="route-badge"><i class="bi bi-arrow-left-right" aria-hidden="true"></i> IDA Y VUELTA</span><i class="bi bi-signpost-split" aria-hidden="true"></i></div>
+          <h3>{{ recorrido.origen }} <span>↔ {{ recorrido.destino }}</span></h3>
+          <div class="route-stops"><p><i class="bi bi-circle" aria-hidden="true"></i><span><strong>Salida desde San Salvador</strong>{{ recorrido.paradaOrigen.nombre }}</span></p><p><i class="bi bi-geo-alt" aria-hidden="true"></i><span><strong>Llegada</strong>{{ recorrido.paradaDestino.nombre }}</span></p></div>
+          <small class="route-disclaimer" *ngIf="!recorrido.paradaDestino.ubicacionConfirmada">Punto de llegada aproximado; confirmar con el chofer.</small>
+          <a routerLink="/viajes" class="route-link">Buscar viajes <i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+        </article>
       </div>
     </div>
+  </section>
+
+  <section id="reservas" class="booking-section landing-width" aria-labelledby="reservas-titulo">
+    <div class="section-heading"><div><span class="eyebrow">TU PRÓXIMA SALIDA</span><h2 id="reservas-titulo">Encontrá tu lugar.</h2></div><p>Consultá la disponibilidad y gestioná<br>tu reserva desde acá.</p></div>
+    <div class="booking-panel"><app-viajes-publicos /></div>
+  </section>
+
+  <section class="join-section landing-width" aria-labelledby="comunidad-titulo">
+    <div class="section-heading"><div><span class="eyebrow">CADA VIAJE NOS CONECTA</span><h2 id="comunidad-titulo">Hay un lugar para vos.</h2></div></div>
+    <div class="join-grid">
+      <article class="join-card passenger-card"><span class="join-icon"><i class="bi bi-person" aria-hidden="true"></i></span><span class="eyebrow">QUIERO VIAJAR</span><h3>Todos tus viajes,<br>desde tu cuenta.</h3><p>Creá tu perfil de pasajero para reservar y consultar tus viajes desde tu panel.</p><button type="button" class="landing-button button-outline" [routerLink]="['/registro']" [queryParams]="{ tipo: 'pasajero' }">Registrarme como pasajero <i class="bi bi-arrow-up-right" aria-hidden="true"></i></button></article>
+      <article class="join-card driver-card"><span class="join-icon"><i class="bi bi-car-front" aria-hidden="true"></i></span><span class="eyebrow">QUIERO CONDUCIR</span><h3>Tu auto. Tu camino.<br>Más conexiones.</h3><p>Registrate como chofer. Una vez aprobada tu cuenta, podés gestionar tus autos, publicar viajes y administrar reservas.</p><div class="driver-actions"><button type="button" class="landing-button button-light" [routerLink]="['/registro']" [queryParams]="{ tipo: 'chofer' }">Registrarme como chofer <i class="bi bi-arrow-up-right" aria-hidden="true"></i></button><button type="button" class="requirements-link" data-bs-toggle="modal" data-bs-target="#requisitosModal">Ver requisitos <i class="bi bi-arrow-right" aria-hidden="true"></i></button></div></article>
+    </div>
+  </section>
+
+  <section class="location-section landing-width" aria-labelledby="ubicacion-titulo">
+    <div class="location-copy"><span class="eyebrow">SOMOS DE ACÁ</span><h2 id="ubicacion-titulo">Conectados con<br>nuestra ciudad.</h2><p>Perico es parte de nuestro camino. Antes de viajar, revisá el punto de salida de tu recorrido y confirmá con el chofer los detalles del encuentro.</p><a routerLink="/viajes" class="text-link">Ver recorridos disponibles <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
+    <div class="location-map"><iframe title="Mapa de referencia de Perico, Jujuy" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d28935.169475335588!2d-65.1378144!3d-24.3828956!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x941b089c89280d99%3A0xc3f8e5c1e34f6!2sPerico%2C%20Jujuy!5e0!3m2!1ses!2sar!4v1700000000000!5m2!1ses!2sar" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+  </section>
+
+  <section class="questions-section landing-width" aria-labelledby="preguntas-titulo">
+    <div class="section-heading"><div><span class="eyebrow">ANTES DE SALIR</span><h2 id="preguntas-titulo">Lo que necesitás saber.</h2></div></div>
+    <div class="questions-list"><details><summary>¿Necesito una cuenta para reservar?</summary><p>No. Podés reservar como invitado con tu nombre y teléfono. Guardá el comprobante: te permite consultar y, cuando el estado de la reserva lo admite, cancelar tu viaje.</p></details><details><summary>¿Cómo pago el viaje?</summary><p>El pago se realiza en efectivo al chofer. Consultá la tarifa por asiento y el total de tu reserva antes de confirmarla.</p></details><details><summary>¿Tengo que compartir mi ubicación?</summary><p>Es opcional. Podés compartir tu ubicación con el chofer desde tu reserva para facilitar el encuentro. El navegador te pedirá permiso para acceder a ella.</p></details></div>
   </section>
 </main>
 
