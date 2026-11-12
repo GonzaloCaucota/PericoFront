@@ -5,7 +5,7 @@ const controller = require('../src/controllers/encuentro.controller');
 const response = () => ({ code: 200, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } });
 function setup(t, options = {}) {
   const transaction = {};
-  const reserva = { idReserva: 4, idViaje: 3, idPasajero: 8, cantidadAsientos: 2, estadoReserva: 'CONFIRMADA', estadoPago: 'PENDIENTE', horarioEncuentro: new Date('2026-11-12T19:00:00Z'), encuentroConfirmadoAt: new Date('2026-11-12T18:30:00Z'), ...options.reserva, save: async () => {} };
+  const reserva = { idReserva: 4, idViaje: 3, idPasajero: 8, cantidadAsientos: 2, estadoReserva: 'CONFIRMADA', estadoPago: 'PENDIENTE', horarioEncuentro: new Date('2026-11-12T19:00:00Z'), encuentroConfirmadoAt: new Date('2026-11-12T18:30:00Z'), encuentroAceptadoPor: 7, ...options.reserva, save: async () => {} };
   const viaje = { idViaje: 3, idChofer: 2, idAuto: 1, fechaSalida: '2026-11-12', asientosDisponibles: 0, estadoViaje: 'COMPLETO', ...options.viaje, save: async () => {} };
   t.mock.method(m.sequelize, 'transaction', async fn => fn(transaction));
   t.mock.method(m.sequelize, 'query', async () => [[{ ahora: options.ahora || '2026-11-12T19:10:00Z' }]]);
@@ -20,7 +20,7 @@ function setup(t, options = {}) {
 }
 async function run(accion, extra = {}, guest = false) {
   const res = response();
-  await controller.gestionar(accion, guest)({ params: { idReserva: 4 }, usuario: { rol: 'CHOFER', idUsuario: 7 }, body: {}, ...extra }, res, error => { throw error; });
+  await controller.gestionar(accion, guest)({ params: { idReserva: 4 }, usuario: accion === 'proponer' ? { rol: 'PASAJERO', idUsuario: 20 } : { rol: 'CHOFER', idUsuario: 7 }, body: {}, ...extra }, res, error => { throw error; });
   return res;
 }
 test('libera la reserva exactamente al cumplir 10 minutos y repetir no duplica asientos', async t => {
@@ -39,7 +39,7 @@ test('ni un segundo antes de la tolerancia permite liberar asientos', async t =>
   assert.equal((await run('ausencia')).code, 409);
   assert.equal(viaje.asientosDisponibles, 0);
 });
-test('sin confirmacion del pasajero no se puede registrar ausencia', async t => {
+test('sin aceptacion del chofer no se puede registrar ausencia', async t => {
   setup(t, { reserva: { encuentroConfirmadoAt: null } });
   assert.equal((await run('ausencia')).code, 409);
 });
@@ -62,23 +62,24 @@ test('no permite proponer un horario pasado ni de otro dia', async t => {
     assert.equal((await run('proponer', { body: { horarioEncuentro } })).code, 400);
   }
 });
-test('el chofer no puede confirmar en nombre del pasajero', async t => {
+test('el pasajero no puede aceptar su propia propuesta', async t => {
   setup(t);
-  assert.equal((await run('confirmar', { body: { horarioEncuentro: '2026-11-12T19:00:00Z' } })).code, 403);
+  assert.equal((await run('confirmar', { usuario: { rol: 'PASAJERO', idUsuario: 20 }, body: { horarioEncuentro: '2026-11-12T19:00:00Z' } })).code, 403);
 });
-test('el pasajero confirma solo la version de horario que vio', async t => {
+test('el chofer acepta solo la version de horario que vio', async t => {
   setup(t, { reserva: { horarioEncuentro: new Date('2026-11-12T19:30:00Z'), encuentroConfirmadoAt: null } });
-  const usuario = { rol: 'PASAJERO', idUsuario: 20 };
+  const usuario = { rol: 'CHOFER', idUsuario: 7 };
   assert.equal((await run('confirmar', { usuario, body: { horarioEncuentro: '2026-11-12T19:25:00Z' } })).code, 409);
   assert.equal((await run('confirmar', { usuario, body: { horarioEncuentro: '2026-11-12T19:30:00Z' } })).code, 200);
 });
-test('un invitado confirma con su comprobante y el hash se usa solo en servidor', async t => {
+test('un invitado propone con su comprobante y no puede aceptar por el chofer', async t => {
   setup(t, { reserva: { horarioEncuentro: new Date('2026-11-12T19:30:00Z'), encuentroConfirmadoAt: null } });
   const headers = { 'x-reserva-token': 'a'.repeat(64) };
-  const res = await run('confirmar', { headers, body: { horarioEncuentro: '2026-11-12T19:30:00Z' } }, true);
+  const res = await run('proponer', { headers, body: { horarioEncuentro: '2026-11-12T19:30:00Z' } }, true);
   assert.equal(res.code, 200);
   assert.equal(JSON.stringify(res.body).includes('tokenHash'), false);
-  assert.equal((await run('confirmar', { headers: {} }, true)).code, 401);
+  assert.equal((await run('confirmar', { headers }, true)).code, 403);
+  assert.equal((await run('proponer', { headers: {} }, true)).code, 401);
 });
 test('una reserva cancelada o un viaje finalizado no admiten ausencia', async t => {
   setup(t, { viaje: { estadoViaje: 'FINALIZADO' } });
@@ -94,4 +95,9 @@ test('no se puede cobrar una reserva liberada por ausencia', async t => {
   const res = response();
   await require('../src/controllers/reserva.controller').registrarPagoEfectivo({ params: { idReserva: 4 } }, res);
   assert.equal(res.code, 409);
+});
+
+test('el chofer no puede proponer el horario del pasajero', async t => {
+  setup(t);
+  assert.equal((await run('proponer', { usuario: { rol: 'CHOFER', idUsuario: 7 }, body: { horarioEncuentro: '2026-11-12T19:30:00Z' } })).code, 403);
 });

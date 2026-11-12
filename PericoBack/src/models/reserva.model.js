@@ -44,6 +44,7 @@ const Reserva = sequelize.define(
 
     horarioEncuentro: { type: DataTypes.DATE, allowNull: true },
     encuentroConfirmadoAt: { type: DataTypes.DATE, allowNull: true },
+    encuentroAceptadoPor: { type: DataTypes.INTEGER, allowNull: true },
     noPresentadoAt: { type: DataTypes.DATE, allowNull: true },
     noPresentadoPor: { type: DataTypes.INTEGER, allowNull: true },
     toleranciaEncuentroMinutos: { type: DataTypes.VIRTUAL, get() { return require('../services/politica-encuentro').toleranciaEncuentroMinutos; } },

@@ -2,7 +2,7 @@ const { randomBytes, createHash } = require('node:crypto');
 const { sequelize, Invitado, Reserva, Viaje, Auto } = require('../models/relaciones');
 const hash = token => createHash('sha256').update(token).digest('hex');
 const fallo = (status, mensaje) => Object.assign(new Error(mensaje), { status });
-const resumen = r => ({ idReserva: r.idReserva, idViaje: r.idViaje, cantidadAsientos: r.cantidadAsientos, importeTotal: r.importeTotal, estadoReserva: r.estadoReserva, estadoPago: r.estadoPago, horarioEncuentro: r.horarioEncuentro, encuentroConfirmadoAt: r.encuentroConfirmadoAt, noPresentadoAt: r.noPresentadoAt, toleranciaEncuentroMinutos: r.toleranciaEncuentroMinutos });
+const resumen = r => ({ idReserva: r.idReserva, idViaje: r.idViaje, cantidadAsientos: r.cantidadAsientos, importeTotal: r.importeTotal, estadoReserva: r.estadoReserva, estadoPago: r.estadoPago, horarioEncuentro: r.horarioEncuentro, encuentroConfirmadoAt: r.encuentroConfirmadoAt, encuentroAceptadoPor: r.encuentroAceptadoPor, noPresentadoAt: r.noPresentadoAt, toleranciaEncuentroMinutos: r.toleranciaEncuentroMinutos });
 exports.crear = async (req, res, next) => {
   try {
     const nombre = typeof req.body.nombre === 'string' ? req.body.nombre.trim() : '';

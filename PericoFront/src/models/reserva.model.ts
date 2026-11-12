@@ -2,6 +2,7 @@ export interface Reserva {
   idReserva: number;
   horarioEncuentro?: string;
   encuentroConfirmadoAt?: string;
+  encuentroAceptadoPor?: number;
   noPresentadoAt?: string;
   toleranciaEncuentroMinutos?: number;
   invitado?: { nombre: string; telefono: string; latitud?: number; longitud?: number; precision?: number; ubicacionActualizadaAt?: string };

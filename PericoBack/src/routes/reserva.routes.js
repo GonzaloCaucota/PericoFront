@@ -5,9 +5,9 @@ const authCtrl = require('../controllers/auth.controller');
 const router = express.Router();
 const invitado = require('../controllers/reserva-invitado.controller');
 const encuentro = require('../controllers/encuentro.controller');
-router.patch('/invitado/encuentro/confirmar', encuentro.gestionar('confirmar', true));
-router.patch('/:idReserva/encuentro', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN', 'CHOFER'), encuentro.gestionar('proponer'));
-router.patch('/:idReserva/encuentro/confirmar', authCtrl.verifyToken, authCtrl.verificarRol('PASAJERO'), encuentro.gestionar('confirmar'));
+router.patch('/invitado/encuentro', encuentro.gestionar('proponer', true));
+router.patch('/:idReserva/encuentro', authCtrl.verifyToken, authCtrl.verificarRol('PASAJERO'), encuentro.gestionar('proponer'));
+router.patch('/:idReserva/encuentro/confirmar', authCtrl.verifyToken, authCtrl.verificarRol('CHOFER'), encuentro.gestionar('confirmar'));
 router.patch('/:idReserva/no-presentado', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN', 'CHOFER'), encuentro.gestionar('ausencia'));
 // Limite local por IP para evitar rafagas sobre el formulario publico.
 const intentosInvitado = new Map();
