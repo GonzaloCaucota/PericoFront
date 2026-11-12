@@ -118,7 +118,7 @@
                 Asientos
               </h6>
               <small class="text-muted">
-                {{ viajeActual.asientosDisponibles }}/4 disponibles
+                {{ viajeActual.asientosDisponibles }}/{{ capacidadViaje }} disponibles
               </small>
             </div>
 
@@ -127,15 +127,15 @@
                 *ngFor="let asiento of asientos; let i = index"
                 type="button"
                 class="btn btn-sm"
-                [class.btn-primary]="i < (4 - viajeActual.asientosDisponibles)"
-                [class.btn-outline-secondary]="i >= (4 - viajeActual.asientosDisponibles)"
-                [disabled]="i < (4 - viajeActual.asientosDisponibles)"
+                [class.btn-primary]="i < (capacidadViaje - viajeActual.asientosDisponibles)"
+                [class.btn-outline-secondary]="i >= (capacidadViaje - viajeActual.asientosDisponibles)"
+                [disabled]="i < (capacidadViaje - viajeActual.asientosDisponibles)"
                 (click)="abrirModalAgregarPasajero()">
 
                 <i
                   class="bi"
-                  [class.bi-person-fill]="i < (4 - viajeActual.asientosDisponibles)"
-                  [class.bi-plus-lg]="i >= (4 - viajeActual.asientosDisponibles)">
+                  [class.bi-person-fill]="i < (capacidadViaje - viajeActual.asientosDisponibles)"
+                  [class.bi-plus-lg]="i >= (capacidadViaje - viajeActual.asientosDisponibles)">
                 </i>
 
               </button>
@@ -143,14 +143,20 @@
               <button
                 type="button"
                 class="btn btn-sm btn-outline-primary"
-                [disabled]="viajeActual.asientosDisponibles <= 0 || viajeActual.estadoViaje === 'FINALIZADO' || viajeActual.estadoViaje === 'CANCELADO'"
+                [disabled]="actualizandoPasajeros || viajeActual.asientosDisponibles <= 0 || !viajeAdmitePasajeros"
                 (click)="abrirModalAgregarPasajero()"
               >
                 <i class="bi bi-person-plus me-1"></i>
                 Agregar pasajero manual
               </button>
+              <button type="button" class="btn btn-sm btn-outline-danger"
+                [disabled]="actualizandoPasajeros || pasajerosManuales <= 0 || !viajeAdmitePasajeros"
+                (click)="quitarPasajeroManual()">
+                <i class="bi bi-person-dash me-1"></i> Quitar pasajero manual
+              </button>
             </div>
 
+            <p class="small text-muted mt-2">{{ pasajerosManuales }} pasajero(s) manual(es). Al quitar uno se libera un asiento; las reservas se gestionan por separado.</p>
             <section *ngIf="invitadosConUbicacion.length" class="mt-3">
               <h6>Ubicacion de pasajeros</h6>
               <div *ngFor="let r of invitadosConUbicacion" class="mb-3">
@@ -573,7 +579,7 @@
 
           <div class="alert alert-warning mb-0">
             <i class="bi bi-exclamation-triangle me-2"></i>
-            Se ocupará un asiento disponible y esta acción no podrá deshacerse.
+            Se ocupará un asiento disponible. Podés liberarlo con “Quitar pasajero manual”.
           </div>
         </div>
 

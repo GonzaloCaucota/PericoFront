@@ -395,59 +395,48 @@ viajeCtrl.actualizarAsientosDisponibles = async (req, res) => {
       #swagger.responses[404] = { description: 'Viaje no encontrado.' }
     */
     try {
-        const idViaje = req.params.id;
-        const { asientosDisponibles } = req.body;
-
-        if (asientosDisponibles === undefined || asientosDisponibles === null) {
-            return res.status(400).json({ status: '0', msg: 'Debe enviar asientosDisponibles.' });
+        const { sequelize } = require('../models/relaciones');
+        const fallo = (status, message) => Object.assign(new Error(message), { status });
+        const { accionManual, asientosDisponibles } = req.body;
+        if (accionManual !== undefined && !['AGREGAR', 'QUITAR'].includes(accionManual)) {
+            throw fallo(400, 'Accion manual no valida.');
         }
-
-        const nuevosAsientos = Number(asientosDisponibles);
-        if (!Number.isInteger(nuevosAsientos) || nuevosAsientos < 0) {
-            return res.status(400).json({ status: '0', msg: 'Los asientos disponibles deben ser un numero entero mayor o igual a 0.' });
+        if (accionManual === undefined && (asientosDisponibles == null || !Number.isInteger(Number(asientosDisponibles)) || Number(asientosDisponibles) < 0)) {
+            throw fallo(400, 'Envia una cantidad entera de asientos mayor o igual a cero.');
         }
-
-        const viaje = await Viaje.findByPk(idViaje, {
-            include: ['auto']
-        });
-
-        if (!viaje) {
-            return res.status(404).json({ status: '0', msg: 'Viaje no encontrado.' });
-        }
-
-        if (viaje.auto && nuevosAsientos > viaje.auto.capacidadAsientos) {
-            return res.status(400).json({ status: '0', msg: 'Los asientos disponibles no pueden superar la capacidad del auto.' });
-        }
-
-        if (req.usuario.rol !== 'ADMIN') {
-            const chofer = await Chofer.findByPk(viaje.idChofer);
-            if (!chofer || chofer.idUsuario !== req.usuario.idUsuario) {
-                return res.status(403).json({ status: '0', msg: 'No tenes permiso para actualizar los asientos de este viaje.' });
-            }
-        }
-
-        viaje.asientosDisponibles = nuevosAsientos;
-        await viaje.save();
-
-        const viajeActualizado = await Viaje.findByPk(idViaje, {
-            include: ['chofer', 'auto', { association: 'reservas', include: ['invitado'] }]
-        });
-
-        if (req.io) {
-            req.io.emit(`asientos_actualizados_viaje_${viajeActualizado.idViaje}`, {
-                idViaje: viajeActualizado.idViaje,
-                asientosDisponibles: viajeActualizado.asientosDisponibles,
-                viaje: viajeActualizado
+        const actualizado = await sequelize.transaction(async transaction => {
+            // Serializar con las reservas para calcular sobre la disponibilidad actual.
+            const viaje = await Viaje.findByPk(req.params.id, {
+                include: ['auto'], transaction, lock: { level: 'UPDATE', of: Viaje }
             });
-        }
-
-        return res.status(200).json({
-            status: '1',
-            msg: 'Asientos disponibles actualizados.',
-            viaje: viajeActualizado
+            if (!viaje) throw fallo(404, 'Viaje no encontrado.');
+            if (req.usuario.rol !== 'ADMIN') {
+                const chofer = await Chofer.findByPk(viaje.idChofer, { transaction });
+                if (!chofer || chofer.idUsuario !== req.usuario.idUsuario) throw fallo(403, 'No tenes permiso para actualizar los asientos de este viaje.');
+            }
+            if (!['ABIERTO', 'COMPLETO', 'EN_CURSO'].includes(viaje.estadoViaje)) throw fallo(409, 'Solo podes modificar pasajeros en un viaje activo.');
+            const capacidad = Number(viaje.auto?.capacidadAsientos);
+            if (!Number.isSafeInteger(capacidad) || capacidad < 1) throw fallo(409, 'No se pudo verificar la capacidad del auto.');
+            const reservados = Number(await Reserva.sum('cantidadAsientos', {
+                where: { idViaje: viaje.idViaje, estadoReserva: { [Op.ne]: 'CANCELADA' } }, transaction
+            })) || 0;
+            const nuevosAsientos = accionManual === 'AGREGAR' ? viaje.asientosDisponibles - 1
+                : accionManual === 'QUITAR' ? viaje.asientosDisponibles + 1 : Number(asientosDisponibles);
+            if (nuevosAsientos < 0) throw fallo(409, 'No hay asientos disponibles para agregar un pasajero manual.');
+            if (nuevosAsientos > capacidad - reservados) throw fallo(409, 'No hay pasajeros manuales para quitar. Los demas asientos corresponden a reservas.');
+            viaje.asientosDisponibles = nuevosAsientos;
+            if (viaje.estadoViaje === 'COMPLETO' && nuevosAsientos > 0) viaje.estadoViaje = 'ABIERTO';
+            await viaje.save({ transaction });
+            return Viaje.findByPk(viaje.idViaje, {
+                include: ['chofer', 'auto', { association: 'reservas', include: ['invitado'] }], transaction
+            });
         });
+        req.io?.emit(`asientos_actualizados_viaje_${actualizado.idViaje}`, {
+            idViaje: actualizado.idViaje, asientosDisponibles: actualizado.asientosDisponibles, viaje: actualizado
+        });
+        return res.status(200).json({ status: '1', msg: 'Asientos disponibles actualizados.', viaje: actualizado });
     } catch (error) {
-        return res.status(500).json({ status: '0', msg: 'Error al actualizar los asientos disponibles.' });
+        return res.status(error.status || 500).json({ status: '0', msg: error.status ? error.message : 'Error al actualizar los asientos disponibles.' });
     }
 };
 

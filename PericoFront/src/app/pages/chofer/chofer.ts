@@ -52,7 +52,7 @@ export class Chofer implements OnInit {
     estado: 'DISPONIBLE'
   };
   public viajeActual?: ViajeBack;
-  public asientos = [1, 2, 3, 4];
+  get asientos(): number[] { return Array.from({ length: this.capacidadViaje }, (_, i) => i + 1); }
   public viajesHistorial: ViajeBack[] = [];
   public mostrarHistorial = false;
   public reserva: Reserva | null = null;
@@ -85,6 +85,43 @@ export class Chofer implements OnInit {
     private _socketService: SocketService,
     private _toastr: NotificacionesService
   ) {}
+
+  public actualizandoPasajeros = false;
+  get capacidadViaje(): number { return Number(this.viajeActual?.auto?.capacidadAsientos) || 4; }
+  get pasajerosManuales(): number {
+    const reservados = (this.viajeActual?.reservas || []).filter(r => r.estadoReserva !== 'CANCELADA')
+      .reduce((total, r) => total + Number(r.cantidadAsientos || 0), 0);
+    return Math.max(0, this.capacidadViaje - Number(this.viajeActual?.asientosDisponibles || 0) - reservados);
+  }
+  get viajeAdmitePasajeros(): boolean {
+    return !!this.viajeActual && ['ABIERTO', 'COMPLETO', 'EN_CURSO'].includes(this.viajeActual.estadoViaje);
+  }
+  quitarPasajeroManual(): void {
+    if (!this.viajeAdmitePasajeros || this.actualizandoPasajeros || this.pasajerosManuales <= 0) return;
+    this.abrirModalConfirmacion({ titulo: 'Quitar pasajero manual',
+      mensaje: 'Se liberara un asiento ocupado manualmente y volvera a estar disponible para reservar.',
+      textoConfirmar: 'Quitar pasajero', icono: 'bi-person-dash', variante: 'danger',
+      accion: () => this.actualizarPasajeroManual('QUITAR') });
+  }
+  private actualizarPasajeroManual(accion: 'AGREGAR' | 'QUITAR'): void {
+    if (!this.viajeActual || !this.viajeAdmitePasajeros || this.actualizandoPasajeros) return;
+    this.actualizandoPasajeros = true;
+    this._choferService.gestionarPasajeroManual(this.viajeActual.idViaje, accion).subscribe({
+      next: response => {
+        this.viajeActual = response.viaje;
+        this.actualizandoPasajeros = false;
+        this._toastr.success(accion === 'AGREGAR' ? 'Pasajero manual agregado.' : 'Pasajero manual quitado. Se libero un asiento.');
+        this.modalAgregarPasajero?.hide();
+        this._changeDetectorRef.markForCheck();
+        this.loadViajes();
+      },
+      error: err => {
+        this.actualizandoPasajeros = false;
+        this._toastr.error(err.error?.msg || 'No se pudo actualizar el pasajero manual.');
+        this._changeDetectorRef.markForCheck();
+      }
+    });
+  }
 
   get invitadosConUbicacion(): any[] {
     return (this.viajeActual?.reservas || []).filter((r: any) =>
@@ -368,7 +405,7 @@ export class Chofer implements OnInit {
 
         // En el panel se muestra como actual el viaje publicado o ya iniciado.
         this.viajeActual = viajes.find((viaje) =>
-          viaje.estadoViaje === 'ABIERTO' || viaje.estadoViaje === 'EN_CURSO'
+          viaje.estadoViaje === 'ABIERTO' || viaje.estadoViaje === 'COMPLETO' || viaje.estadoViaje === 'EN_CURSO'
         );
 
         if (this.viajeActual?.reservas) {
@@ -626,25 +663,7 @@ export class Chofer implements OnInit {
       return;
     }
 
-    // Pasajero manual: no crea usuario ni reserva, solo ocupa un asiento del viaje.
-    const nuevosAsientos = this.viajeActual.asientosDisponibles - 1;
-
-    this._choferService.actualizarAsientosDisponibles(
-      this.viajeActual.idViaje,
-      nuevosAsientos
-    ).subscribe({
-      next: (response: any) => {
-        this.viajeActual = response.viaje || this.viajeActual;
-        this._toastr.success('Pasajero manual agregado.');
-        this.loadViajes();
-        (document.activeElement as HTMLElement)?.blur();
-        this.modalAgregarPasajero?.hide();
-      },
-      error: (err) => {
-        this._toastr.error('No se pudo agregar el pasajero manual.');
-        console.error(err);
-      }
-    });
+    this.actualizarPasajeroManual('AGREGAR');
   }
 
   private confirmarCambioEstadoViaje(nuevoEstado: 'FINALIZADO' | 'CANCELADO'): void {
@@ -674,28 +693,7 @@ export class Chofer implements OnInit {
     });
   }
 
-  agregarPasajeroManual(): void {
-    if (!this.viajeActual || this.viajeActual.asientosDisponibles <= 0) {
-      console.error('No hay asientos disponibles para agregar pasajero');
-      return;
-    }
-
-    const nuevosAsientos = this.viajeActual.asientosDisponibles - 1;
-
-    this._choferService.actualizarAsientosDisponibles(
-      this.viajeActual.idViaje,
-      nuevosAsientos
-    ).subscribe({
-      next: (response: any) => {
-        this.viajeActual = response.viaje || response;
-        this._changeDetectorRef.detectChanges();
-        console.log('Asiento agregado, viaje actualizado:', this.viajeActual);
-      },
-      error: (err) => {
-        console.error('Error al agregar pasajero:', err);
-      }
-    });
-  }
+  agregarPasajeroManual(): void { this.confirmarAgregarPasajero(); }
 
   enviarUbicacion(): void {
     this.cargandoUbicacion = true;

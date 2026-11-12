@@ -104,6 +104,10 @@ export class ChoferService {
     });
   }
 
+  gestionarPasajeroManual(idViaje: number, accionManual: 'AGREGAR' | 'QUITAR'): Observable<any> {
+    return this._http.post(`${this.baseUrl}/viajes/${idViaje}/actualizar-asientos-disponibles`, { accionManual });
+  }
+
   registrarPagoEfectivo(idReserva: number): Observable<any> {
     return this._http.put<any>(`${this.baseUrl}/reservas/${idReserva}/pago-efectivo`, {});
   }
