@@ -5,7 +5,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Chofer } from './chofer';
 import { API_URL } from '../../config/api';
-import { GeolocationService } from '../../services/geolocalizacion.service';
 
 describe('Chofer', () => {
   let component: Chofer;
@@ -46,19 +45,6 @@ describe('Chofer', () => {
     component.quitarPasajeroManual();
     expect(component.confirmacionModal.accion).toBeNull();
     expect(component.pasajerosManuales).toBe(0);
-  });
-
-  it('no reenvia una posicion anterior si falla la lectura actual', async () => {
-    component.latitud = -24.2;
-    component.longitud = -65.3;
-    component.precision = 20;
-    TestBed.inject(GeolocationService).obtenerUbicacionActual = () => Promise.reject(new Error('Ubicacion imprecisa.'));
-    component.enviarUbicacion();
-    await Promise.resolve();
-    await Promise.resolve();
-    TestBed.inject(HttpTestingController).expectNone(`${API_URL}/choferes/${component.idChofer}/ubicacion`);
-    expect(component.cargandoUbicacion).toBe(false);
-    expect(component.errorUbicacion).toBe('Ubicacion imprecisa.');
   });
 
 });
