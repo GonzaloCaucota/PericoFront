@@ -1,4 +1,11 @@
 ﻿<section class="driver-dashboard container-fluid py-3 py-md-4">
+  <p *ngIf="errorPanel" class="alert alert-warning" role="alert">{{ errorPanel }}</p>
+  <div *ngIf="viajesActivos.length > 1" class="card p-3 mb-3">
+    <label for="viaje-activo-selector">Tus viajes abiertos o en curso ({{ viajesActivos.length }})</label>
+    <select id="viaje-activo-selector" class="form-select" [ngModel]="viajeActual?.idViaje" (ngModelChange)="seleccionarViaje($event)">
+      <option *ngFor="let v of viajesActivos" [ngValue]="v.idViaje">#{{ v.idViaje }} · {{ v.origen }} → {{ v.destino }} · {{ v.fechaSalida | date:'dd/MM/yyyy' }} {{ v.horaSalida }} · {{ v.asientosDisponibles }} asiento(s)</option>
+    </select>
+  </div>
   <div class="availability-panel card-custom bg-white border rounded-3 mb-3 mb-md-4">
     <div class="card-body text-center py-4">
       <h1 class="availability-title mb-4">Inicia tu servicio desde aquí­</h1>

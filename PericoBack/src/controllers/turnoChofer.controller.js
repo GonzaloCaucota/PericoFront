@@ -26,7 +26,8 @@ turnoChoferCtrl.createTurno = async (req, res) => {
         }
 
         // req.body debe recibir: idAuto, idChofer, fecha, horaInicio, horaFin
-        const nuevoTurno = await TurnoChofer.create(req.body);
+        const { idChofer, idAuto, fecha, horaInicio, horaFin } = req.body;
+        await TurnoChofer.findOrCreate({ where: { idChofer, idAuto, fecha, horaInicio }, defaults: { horaFin } });
 
         res.json({ status: '1', msg: 'Turno guardado.' });
     }catch (error) {

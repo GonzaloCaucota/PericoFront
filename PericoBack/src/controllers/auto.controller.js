@@ -71,17 +71,50 @@ autoCtrl.createAuto = async (req, res) =>{
     /*
       #swagger.tags = ['Autos']
       #swagger.summary = 'Registrar un auto'
-      #swagger.description = 'Requiere rol ADMIN.'
+      #swagger.description = 'ADMIN o CHOFER. Crea y asocia el auto al chofer autenticado en una transaccion.'
       #swagger.security = [{ "bearerAuth": [] }]
       #swagger.parameters['body'] = { in: 'body', required: true, schema: { $ref: '#/definitions/Auto' } }
-      #swagger.responses[200] = { description: 'Auto guardado.' }
+      #swagger.responses[201] = { description: 'Auto guardado.' }
       #swagger.responses[400] = { description: 'Error procesando operacion.' }
     */
-    try{
-        const auto = await Auto.create(req.body)
-        res.json({ status: '1', msg: 'Auto guardado.', auto });
-    }catch (error) {
-        res.status(400).json({ status: '0', msg: 'Error procesando operacion.', error: error.message });
+    try {
+        const { sequelize } = require('../models/relaciones');
+        const fallo = (status, message) => Object.assign(new Error(message), { status });
+        const patente = typeof req.body.patente === 'string' ? req.body.patente.trim().toUpperCase() : '';
+        const marca = typeof req.body.marca === 'string' ? req.body.marca.trim() : '';
+        const modelo = typeof req.body.modelo === 'string' ? req.body.modelo.trim() : '';
+        const capacidadAsientos = Number(req.body.capacidadAsientos);
+        const estado = req.body.estado ?? 'DISPONIBLE';
+        if (!patente || !marca || !modelo || [patente, marca, modelo].some(v => v.length > 255)
+            || !Number.isSafeInteger(capacidadAsientos) || capacidadAsientos < 1
+            || !['DISPONIBLE', 'EN_VIAJE', 'EN_TALLER', 'INACTIVO'].includes(estado)) throw fallo(400, 'Completa los datos del auto y una capacidad entera positiva.');
+        let asociadoAlChofer = false;
+        const auto = await sequelize.transaction(async transaction => {
+            let chofer;
+            if (req.usuario.rol === 'CHOFER') {
+                chofer = await Chofer.findOne({ where: { idUsuario: req.usuario.idUsuario }, transaction, lock: true });
+                if (!chofer) throw fallo(404, 'No se encontro tu perfil de chofer.');
+                if (req.body.idChofer != null && Number(req.body.idChofer) !== chofer.idChofer) throw fallo(403, 'No podes asignar autos a otro chofer.');
+            } else if (req.body.idChofer != null) {
+                if (!Number.isSafeInteger(Number(req.body.idChofer)) || Number(req.body.idChofer) < 1) throw fallo(400, 'Selecciona un chofer valido.');
+                chofer = await Chofer.findByPk(Number(req.body.idChofer), { transaction, lock: true });
+                if (!chofer) throw fallo(404, 'Chofer no encontrado.');
+            }
+            if (await Auto.findOne({ where: { patente }, transaction })) throw fallo(409, 'La patente ya esta registrada. Edita el auto existente o solicita su asignacion a administracion.');
+            const creado = await Auto.create({ patente, marca, modelo, capacidadAsientos, estado }, { transaction });
+            if (chofer) {
+                const [[{ hoy }]] = await sequelize.query("SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'America/Argentina/Jujuy')::date::text AS hoy", { transaction });
+                await TurnoChofer.create({ idChofer: chofer.idChofer, idAuto: creado.idAuto, fecha: hoy, horaInicio: '00:00:00', horaFin: '23:59:59' }, { transaction });
+                asociadoAlChofer = true;
+            }
+            return creado;
+        });
+        return res.status(201).json({ status: '1', msg: 'Auto registrado.', auto, asociadoAlChofer });
+    } catch (error) {
+        const duplicado = error.name === 'SequelizeUniqueConstraintError';
+        return res.status(error.status || (duplicado ? 409 : 400)).json({ status: '0', msg: error.status ? error.message
+            : duplicado ? 'La patente o el identificador ya existe. Administracion debe revisar el alta.'
+            : 'No se pudo registrar y asociar el auto. No se guardaron cambios.' });
     }
 }
 

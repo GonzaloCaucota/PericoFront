@@ -125,7 +125,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
         this.sincronizarPuntoChoferDesdeReserva();
         this._changeDetectorRef.detectChanges();
       },
-      error: (err) => console.error('Error al cargar pasajero:', err)
+      error: (err) => { this.mensaje = err.error?.msg || 'No se pudo cargar tu perfil. Volve a ingresar para recuperar tus reservas.'; this._changeDetectorRef.markForCheck(); }
     });
   }
 
@@ -152,9 +152,10 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
         this.buscando = false;
 
         if (!silencioso) {
-          this.mensaje = 'No se pudieron cargar los viajes disponibles.';
+          this.mensaje = err.error?.msg || 'No se pudieron cargar los viajes disponibles. Verifica tu sesion y volve a ingresar.';
         }
 
+        this._changeDetectorRef.markForCheck();
         console.error('Error al buscar viajes:', err);
       }
     });

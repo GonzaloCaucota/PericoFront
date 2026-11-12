@@ -5,6 +5,8 @@ const authCtrl = require('../controllers/auth.controller');
 const router = express.Router();
 const propietario = authCtrl.propietarioPerfil(require('../models/chofer.model'), 'idChofer');
 
+router.get('/mi-perfil', authCtrl.verifyToken, authCtrl.verificarRol('CHOFER'), choferCtrl.obtenerMiPerfil);
+
 router.get('/', authCtrl.verifyToken, authCtrl.verificarRol('ADMIN'), choferCtrl.obtenerChoferes);
 router.post('/', choferCtrl.registrarChofer);
 

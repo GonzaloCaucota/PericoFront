@@ -46,6 +46,10 @@ export class ChoferService {
   constructor(private _http: HttpClient) {}
 
   // Este service concentra las llamadas HTTP que usa la pantalla del chofer.
+  getMiPerfilChofer(): Observable<Pick<ChoferModel, 'idChofer'>> {
+    return this._http.get<Pick<ChoferModel, 'idChofer'>>(`${this.baseUrl}/choferes/mi-perfil`);
+  }
+
   getChoferes(): Observable<ChoferModel[]> {
     return this._http.get<ChoferModel[]>(`${this.baseUrl}/choferes`);
   }
@@ -54,8 +58,8 @@ export class ChoferService {
     return this._http.get<Auto[]>(`${this.baseUrl}/autos`);
   }
 
-  crearAuto(auto: CrearAutoDto): Observable<{ status: string; msg: string; auto: Auto }> {
-    return this._http.post<{ status: string; msg: string; auto: Auto }>(`${this.baseUrl}/autos`, auto);
+  crearAuto(auto: CrearAutoDto): Observable<{ status: string; msg: string; auto: Auto; asociadoAlChofer?: boolean }> {
+    return this._http.post<{ status: string; msg: string; auto: Auto; asociadoAlChofer?: boolean }>(`${this.baseUrl}/autos`, auto);
   }
 
   actualizarAuto(idAuto: number, auto: CrearAutoDto): Observable<any> {

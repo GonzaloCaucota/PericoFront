@@ -53,6 +53,8 @@ export class Chofer implements OnInit {
     estado: 'DISPONIBLE'
   };
   public viajeActual?: ViajeBack;
+  public viajesActivos: ViajeBack[] = [];
+  public errorPanel = '';
   get asientos(): number[] { return Array.from({ length: this.capacidadViaje }, (_, i) => i + 1); }
   public viajesHistorial: ViajeBack[] = [];
   public mostrarHistorial = false;
@@ -158,13 +160,7 @@ export class Chofer implements OnInit {
       },
       error: () => { this.errorRecorridos = 'No se pudieron cargar los recorridos. Recarga la pagina para reintentar.'; this._changeDetectorRef.detectChanges(); }
     });
-    if (!this.idChofer) {
-      console.error('No hay idChofer en sesion');
-      this.resolverChoferDesdeUsuarioSesion();
-      return;
-    }
-
-    this.cargarPanelChofer();
+    this.resolverChoferDesdeUsuarioSesion();
   }
 
   private cargarPanelChofer(): void {
@@ -239,7 +235,9 @@ export class Chofer implements OnInit {
       },
       error: (err) => {
         console.error('Error al cargar autos del chofer:', err);
-        this._toastr.error('Error al cargar autos del chofer.');
+        this.errorPanel = err.error?.msg || 'No se pudieron cargar tus autos. Intenta nuevamente o volve a ingresar.';
+        this._changeDetectorRef.markForCheck();
+        this._toastr.error(this.errorPanel);
       }
     });
   }
@@ -257,6 +255,8 @@ export class Chofer implements OnInit {
   }
 
   guardarAuto(): void {
+    if (this.guardandoAuto) return;
+    if (!this.idChofer) { this._toastr.error('No se cargo tu perfil de chofer. Volve a iniciar sesion antes de registrar un auto.'); return; }
     const datosAuto = this.normalizarAutoForm();
 
     if (!datosAuto) return;
@@ -276,6 +276,7 @@ export class Chofer implements OnInit {
         },
         error: (err) => {
           this.guardandoAuto = false;
+          this._changeDetectorRef.markForCheck();
           this._toastr.error(err.error?.msg || 'No se pudo actualizar el auto.');
           console.error('Error al actualizar auto:', err);
         }
@@ -285,33 +286,32 @@ export class Chofer implements OnInit {
     }
 
     this._choferService.crearAuto(datosAuto).subscribe({
-      next: (response) => {
-        if (!response.auto?.idAuto) {
-          this._toastr.success('Auto registrado correctamente.');
+      next: response => {
+        const finalizar = () => {
+          this._toastr.success('Auto registrado y asociado correctamente.');
           this.finalizarGuardadoAuto();
+        };
+        if (response.asociadoAlChofer) { finalizar(); return; }
+        // Compatibilidad durante el despliegue: el backend anterior aun no asociaba el auto.
+        if (!response.auto?.idAuto) {
+          this.guardandoAuto = false;
+          this._toastr.error('El servidor no confirmo el registro del auto. Recarga la pagina antes de reintentar.');
+          this._changeDetectorRef.markForCheck();
           return;
         }
-
-        this._choferService.crearTurnoChofer({
-          idChofer: this.idChofer,
-          idAuto: response.auto.idAuto,
-          fecha: this.getFechaActual(),
-          horaInicio: '00:00:00',
-          horaFin: '23:59:59'
-        }).subscribe({
-          next: () => {
-            this._toastr.success('Auto registrado correctamente.');
-            this.finalizarGuardadoAuto();
-          },
-          error: (err) => {
+        this._choferService.crearTurnoChofer({ idChofer: this.idChofer, idAuto: response.auto.idAuto,
+          fecha: this.getFechaActual(), horaInicio: '00:00:00', horaFin: '23:59:59' }).subscribe({
+          next: finalizar,
+          error: () => {
             this.guardandoAuto = false;
-            this._toastr.error('El auto se creo, pero no se pudo asociar al chofer.');
-            console.error('Error al asociar auto al chofer:', err);
+            this._toastr.error('El auto se registro pero no se pudo asociar. No repitas el alta con la misma patente; solicita la asignacion a administracion.');
+            this._changeDetectorRef.markForCheck();
           }
         });
       },
       error: (err) => {
         this.guardandoAuto = false;
+        this._changeDetectorRef.markForCheck();
         this._toastr.error(err.error?.msg || 'No se pudo registrar el auto.');
         console.error('Error al registrar auto:', err);
       }
@@ -364,6 +364,7 @@ export class Chofer implements OnInit {
     this.guardandoAuto = false;
     this.resetAutoForm();
     this.loadAutos();
+    this._changeDetectorRef.markForCheck();
   }
 
   private resetAutoForm(): void {
@@ -403,15 +404,21 @@ export class Chofer implements OnInit {
     };
   }
 
+  seleccionarViaje(id: number): void {
+    const viaje = this.viajesActivos.find(v => v.idViaje === Number(id));
+    if (!viaje) return;
+    this.viajeActual = viaje;
+    this.loadViajes();
+  }
+
   loadViajes(): void {
     this._choferService.getViajesDelChofer(this.idChofer).subscribe({
       next: (data) => {
         const viajes = data as ViajeBack[];
 
         // En el panel se muestra como actual el viaje publicado o ya iniciado.
-        this.viajeActual = viajes.find((viaje) =>
-          viaje.estadoViaje === 'ABIERTO' || viaje.estadoViaje === 'COMPLETO' || viaje.estadoViaje === 'EN_CURSO'
-        );
+        this.viajesActivos = viajes.filter(viaje => ['ABIERTO', 'COMPLETO', 'EN_CURSO'].includes(viaje.estadoViaje));
+        this.viajeActual = this.viajesActivos.find(v => v.idViaje === this.viajeActual?.idViaje) || this.viajesActivos[0];
 
         if (this.viajeActual?.reservas) {
           this.viajeActual.reservas = this.viajeActual.reservas
@@ -459,6 +466,8 @@ export class Chofer implements OnInit {
         this._changeDetectorRef.detectChanges();
       },
       error: (err) => {
+        this.errorPanel = err.error?.msg || 'No se pudieron cargar los viajes. Volve a ingresar o recarga la pagina.';
+        this._changeDetectorRef.markForCheck();
         console.error('Error al cargar viajes del chofer:', err);
       }
     });
@@ -800,29 +809,26 @@ export class Chofer implements OnInit {
   }
 
   private resolverChoferDesdeUsuarioSesion(): void {
-    const idUsuario = this.getIdUsuarioSesion();
-
-    if (!idUsuario) {
-      this._toastr.error('No se encontro el perfil de chofer en la sesion. Volve a iniciar sesion.');
-      return;
-    }
-
-    this._choferService.getChoferes().subscribe({
-      next: (choferes) => {
-        const chofer = choferes.find((item) => Number(item.idUsuario) === idUsuario);
-
-        if (!chofer?.idChofer) {
-          this._toastr.error('No se encontro el perfil de chofer asociado a tu usuario.');
-          return;
-        }
-
-        this.idChofer = chofer.idChofer;
-        this.actualizarIdChoferSesion(chofer.idChofer);
-        this.cargarPanelChofer();
-      },
-      error: (error) => {
-        console.error('Error resolviendo el perfil de chofer:', error);
-        this._toastr.error('No se pudo cargar el perfil de chofer.');
+    const cargar = (chofer: Pick<ChoferModel, 'idChofer'>) => {
+      if (!chofer?.idChofer) { avisar({ error: { msg: 'No se encontro tu perfil de chofer.' } }); return; }
+      this.idChofer = chofer.idChofer;
+      this.actualizarIdChoferSesion(chofer.idChofer);
+      this.cargarPanelChofer();
+    };
+    const avisar = (error: any) => {
+      this.errorPanel = error.status === 403 ? 'Esta cuenta no es de chofer. Ingresa con tu cuenta de chofer para ver sus autos y viajes.'
+        : (error.error?.msg || 'No se pudo cargar tu perfil. Volve a iniciar sesion.');
+      this._toastr.error(this.errorPanel);
+      this._changeDetectorRef.markForCheck();
+    };
+    this._choferService.getMiPerfilChofer().subscribe({
+      next: cargar,
+      error: error => {
+        // Durante un despliegue, el backend anterior aun puede no tener mi-perfil.
+        // La ruta por ID tambien valida que el perfil pertenezca a la sesion.
+        if (this.idChofer > 0 && [404, 500].includes(error.status)) {
+          this._choferService.getChoferById(this.idChofer).subscribe({ next: cargar, error: avisar });
+        } else avisar(error);
       }
     });
   }
@@ -842,11 +848,11 @@ export class Chofer implements OnInit {
   }
 
   private getFechaActual(): string {
-    return new Date().toISOString().slice(0, 10);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Jujuy', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   }
 
   private getHoraActual(): string {
-    return new Date().toTimeString().slice(0, 8);
+    return new Date().toLocaleTimeString('en-GB', { timeZone: 'America/Argentina/Jujuy', hour12: false });
   }
 
   private escucharEvento<T>(evento: string, callback: (data: T) => void): void {

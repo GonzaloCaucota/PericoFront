@@ -2,7 +2,7 @@ import { GOOGLE_CLIENT_ID } from '../../config/api';
 import { Component, OnInit, AfterViewInit, inject, ChangeDetectorRef, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router, RouterLink, RouterModule } from '@angular/router';
+import { Router, RouterLink, RouterModule, ActivatedRoute } from '@angular/router';
 import { LoginService, LoginPayload, UsuarioSesion } from '../../services/login-service';
 
 @Component({
@@ -15,6 +15,7 @@ import { LoginService, LoginPayload, UsuarioSesion } from '../../services/login-
 export class Login implements OnInit, AfterViewInit {
   // Login permite autenticacion tradicional y Google Identity Services.
   private fb = inject(FormBuilder);
+  private route = inject(ActivatedRoute);
   private loginService = inject(LoginService); 
   private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
@@ -28,6 +29,7 @@ export class Login implements OnInit, AfterViewInit {
   mensajeExito: string | null = null;
 
   ngOnInit(): void {
+    if (this.route.snapshot.queryParamMap.get('sesion') === 'vencida') this.mensajeError = 'Tu sesion vencio o ya no esta autorizada. Volve a ingresar para cargar tus viajes y autos.';
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
       password: ['', Validators.required]

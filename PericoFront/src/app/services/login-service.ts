@@ -101,6 +101,14 @@ export class LoginService {
     return usuario ? usuario.rol : null;
   }
 
+  sesionVencida(): void {
+    sessionStorage.removeItem(this.TOKEN_KEY);
+    sessionStorage.removeItem(this.USUARIO_KEY);
+    this.estaLogueadoSignal.set(false);
+    this.usuarioSesionSignal.set(null);
+    this.router.navigate(['/login'], { queryParams: { sesion: 'vencida' } });
+  }
+
   cerrarSesion(): void {
     sessionStorage.removeItem(this.TOKEN_KEY);
     sessionStorage.removeItem(this.USUARIO_KEY);

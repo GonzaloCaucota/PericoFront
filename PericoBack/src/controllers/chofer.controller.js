@@ -2,6 +2,14 @@ const { Op } = require('sequelize');
 const { sequelize, Usuario, Chofer, Auto, Viaje, Admin, HabilitacionChofer } = require('../models/relaciones');
 
 const choferCtrl = {};
+choferCtrl.obtenerMiPerfil = async (req, res) => {
+  try {
+    const perfil = await Chofer.findOne({ where: { idUsuario: req.usuario.idUsuario }, attributes: ['idChofer'] });
+    if (!perfil) return res.status(404).json({ msg: 'Tu cuenta no tiene un perfil de chofer.' });
+    return res.json(perfil);
+  } catch { return res.status(500).json({ msg: 'No se pudo cargar tu perfil de chofer.' }); }
+};
+
 
 // El chofer modifica sus propios datos (perfil Usuario + perfil Chofer).
 choferCtrl.actualizarChofer = async (req, res) => {
