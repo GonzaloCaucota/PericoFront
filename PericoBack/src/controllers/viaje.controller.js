@@ -418,7 +418,7 @@ viajeCtrl.actualizarAsientosDisponibles = async (req, res) => {
             const capacidad = Number(viaje.auto?.capacidadAsientos);
             if (!Number.isSafeInteger(capacidad) || capacidad < 1) throw fallo(409, 'No se pudo verificar la capacidad del auto.');
             const reservados = Number(await Reserva.sum('cantidadAsientos', {
-                where: { idViaje: viaje.idViaje, estadoReserva: { [Op.ne]: 'CANCELADA' } }, transaction
+                where: { idViaje: viaje.idViaje, estadoReserva: { [Op.notIn]: ['CANCELADA', 'NO_PRESENTADO'] } }, transaction
             })) || 0;
             const nuevosAsientos = accionManual === 'AGREGAR' ? viaje.asientosDisponibles - 1
                 : accionManual === 'QUITAR' ? viaje.asientosDisponibles + 1 : Number(asientosDisponibles);

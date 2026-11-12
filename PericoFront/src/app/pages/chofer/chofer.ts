@@ -1,3 +1,4 @@
+import { EncuentroReserva } from '../../components/encuentro-reserva/encuentro-reserva';
 import { RecorridoService } from '../../services/recorrido.service';
 import { Recorrido } from '../../../models/recorrido.model';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
@@ -31,7 +32,7 @@ type ViajeBack = Viaje & {
 @Component({
   selector: 'app-chofer',
   standalone: true,
-  imports: [CommonModule, FormsModule, MapaRutaComponent],
+  imports: [CommonModule, FormsModule, MapaRutaComponent, EncuentroReserva],
   templateUrl: './chofer.html',
   styleUrl: './chofer.scss'
 })
@@ -89,7 +90,7 @@ export class Chofer implements OnInit {
   public actualizandoPasajeros = false;
   get capacidadViaje(): number { return Number(this.viajeActual?.auto?.capacidadAsientos) || 4; }
   get pasajerosManuales(): number {
-    const reservados = (this.viajeActual?.reservas || []).filter(r => r.estadoReserva !== 'CANCELADA')
+    const reservados = (this.viajeActual?.reservas || []).filter(r => !['CANCELADA', 'NO_PRESENTADO'].includes(r.estadoReserva))
       .reduce((total, r) => total + Number(r.cantidadAsientos || 0), 0);
     return Math.max(0, this.capacidadViaje - Number(this.viajeActual?.asientosDisponibles || 0) - reservados);
   }
@@ -123,6 +124,10 @@ export class Chofer implements OnInit {
     });
   }
 
+  get reservasConEncuentro(): any[] {
+    return (this.viajeActual?.reservas || []).filter(r => ['PENDIENTE', 'CONFIRMADA'].includes(r.estadoReserva));
+  }
+
   get invitadosConUbicacion(): any[] {
     return (this.viajeActual?.reservas || []).filter((r: any) =>
       ['PENDIENTE', 'CONFIRMADA'].includes(r.estadoReserva) &&
@@ -135,7 +140,7 @@ export class Chofer implements OnInit {
     // Alimenta la lista "Cobros pendientes" del HTML.
     return (this.viajeActual?.reservas || []).filter((reserva) =>
       reserva.estadoPago !== 'PAGADO' &&
-      reserva.estadoReserva !== 'CANCELADA' &&
+      !['CANCELADA', 'NO_PRESENTADO'].includes(reserva.estadoReserva) &&
       reserva.estadoReserva !== 'UTILIZADA'
     );
   }
@@ -905,6 +910,8 @@ export class Chofer implements OnInit {
 
         this._changeDetectorRef.detectChanges();
       });
+
+      this.escucharEvento<any>(`reserva_actualizada_${reserva.idReserva}`, () => this.loadViajes());
 
       this.escucharEvento<any>(`reserva_cancelada_${reserva.idReserva}`, (data) => {
         this._toastr.warning(`La reserva #${data.idReserva} fue cancelada.`);

@@ -16,7 +16,7 @@ function setup(t, { libres = 0, reservados = 2, estado = 'ABIERTO', usuario = 7 
   t.mock.method(m.Chofer, 'findByPk', async () => ({ idUsuario: usuario }));
   t.mock.method(m.Reserva, 'sum', async (_field, options) => {
     assert.equal(options.transaction, transaction);
-    assert.equal(options.where.estadoReserva[require('sequelize').Op.ne], 'CANCELADA');
+    assert.deepEqual(options.where.estadoReserva[require('sequelize').Op.notIn], ['CANCELADA', 'NO_PRESENTADO']);
     return reservados;
   });
   return viaje;

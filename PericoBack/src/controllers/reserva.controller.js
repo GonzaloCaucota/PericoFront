@@ -12,26 +12,15 @@ const estadosReservaValidos = [
 
 const cancelarReservaConTransaccion = async (idReserva, transaction) => {
   // Cancelar una reserva devuelve los asientos al viaje dentro de la misma transaccion.
-  const reserva = await Reserva.findByPk(idReserva, {
-    transaction,
-    lock: true,
+  const original = await Reserva.findByPk(idReserva, { transaction });
+  if (!original) return { error: { status: 404, body: { mensaje: 'Reserva no encontrada' } } };
+  const viaje = await Viaje.findByPk(original.idViaje, {
+    transaction, lock: { level: 'UPDATE', of: Viaje }
   });
-
-  if (!reserva) {
-    return { error: { status: 404, body: { mensaje: 'Reserva no encontrada' } } };
-  }
-
-  if (!['PENDIENTE', 'CONFIRMADA'].includes(reserva.estadoReserva)) {
-    return { error: { status: 400, body: { mensaje: 'La reserva ya se encuentra cancelada' } } };
-  }
-
-  const viaje = await Viaje.findByPk(reserva.idViaje, {
-    transaction,
-    lock: { level: 'UPDATE', of: Viaje },
-  });
-
-  if (!viaje) {
-    return { error: { status: 404, body: { mensaje: 'Viaje de la reserva no encontrado' } } };
+  if (!viaje) return { error: { status: 404, body: { mensaje: 'Viaje de la reserva no encontrado' } } };
+  const reserva = await Reserva.findByPk(idReserva, { transaction, lock: true });
+  if (!reserva || !['PENDIENTE', 'CONFIRMADA'].includes(reserva.estadoReserva)) {
+    return { error: { status: 400, body: { mensaje: 'La reserva ya no esta activa' } } };
   }
 
   // Al cancelar se devuelven al viaje los asientos que tenia tomada la reserva.
@@ -182,32 +171,17 @@ reservaCtrl.registrarPagoEfectivo = async (req, res) => {
     #swagger.responses[404] = { description: 'Reserva no encontrada.' }
   */
   try {
-    const { idReserva } = req.params; 
-
-    const reserva = await Reserva.findByPk(idReserva);
-
-    if (!reserva) {
-      return res.status(404).json({
-        mensaje: 'Error de búsqueda',
-        error: `No se encontró ninguna reserva con el ID #${idReserva}`
-      });
-    }
-
-    if (reserva.estadoPago === 'PAGADO') {  // Validacion  que no se intente marcar como pagado algo que YA está pagado
-      return res.status(400).json({
-        mensaje: 'Validación de pago fallida',
-        error: 'Esta reserva ya figura como PAGADA en el sistema.'
-      });
-    }
-
-    if (reserva.estadoReserva === 'CANCELADA') return res.status(400).json({ mensaje: 'Reserva cancelada' });
-
-    // El chofer registra el efectivo recibido y notifica a los participantes.
-    reserva.estadoPago = 'PAGADO';
-    if (reserva.estadoReserva === 'PENDIENTE') {
-      reserva.estadoReserva = 'CONFIRMADA';
-    }
-    await reserva.save();
+    const reserva = await sequelize.transaction(async transaction => {
+      const actual = await Reserva.findByPk(req.params.idReserva, { transaction, lock: true });
+      const fallo = (status, mensaje) => Object.assign(new Error(mensaje), { status });
+      if (!actual) throw fallo(404, 'Reserva no encontrada.');
+      if (actual.estadoPago !== 'PENDIENTE') throw fallo(400, 'La reserva ya tiene un pago registrado.');
+      if (!['PENDIENTE', 'CONFIRMADA'].includes(actual.estadoReserva)) throw fallo(409, 'La reserva ya no admite registrar un pago.');
+      actual.estadoPago = 'PAGADO';
+      if (actual.estadoReserva === 'PENDIENTE') actual.estadoReserva = 'CONFIRMADA';
+      await actual.save({ transaction });
+      return actual;
+    });
     req.io.emit(`pago_confirmado_reserva_${reserva.idReserva}`, {
       idReserva: reserva.idReserva,
       idViaje: reserva.idViaje,
@@ -239,6 +213,7 @@ reservaCtrl.registrarPagoEfectivo = async (req, res) => {
     });
 
   } catch (error) {
+    if (error.status) return res.status(error.status).json({ mensaje: error.message });
     res.status(500).json({
       mensaje: 'Error al registrar el pago en efectivo',
       error: error.message
@@ -294,6 +269,8 @@ reservaCtrl.cambiarEstadoReserva = async (req, res) => {
     #swagger.responses[404] = { description: 'Reserva no encontrada.' }
   */
   const estado = req.body.estado || req.body.estadoReserva;
+  if (estado === 'NO_PRESENTADO') return require('./encuentro.controller').gestionar('ausencia')(req, res, error => res.status(500).json({ mensaje: 'No se pudo registrar la ausencia.' }));
+  if (estado === 'CANCELADA' && req.usuario.rol === 'CHOFER') return res.status(409).json({ mensaje: 'Para liberar una reserva por ausencia usa No se presento, despues del horario confirmado y su tolerancia.' });
 
   if (!estadosReservaValidos.includes(estado)) {
     return res.status(400).json({

@@ -1,3 +1,4 @@
+import { EncuentroReserva } from '../encuentro-reserva/encuentro-reserva';
 import { Component, OnInit, OnDestroy, inject, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +18,7 @@ export interface ViajePublico {
 
 @Component({
   selector: 'app-viajes-publicos', standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, MapaRutaComponent],
+  imports: [CommonModule, FormsModule, RouterLink, MapaRutaComponent, EncuentroReserva],
   styleUrl: './viajes-publicos.scss',
   template: `
     <section class="container py-4" aria-labelledby="viajes-publicos-titulo">
@@ -62,6 +63,7 @@ export interface ViajePublico {
           <app-mapa-ruta *ngIf="puntoPasajero" idMapa="mapaInvitado" [pasajero]="puntoPasajero" />
         </div>
         <div *ngIf="comprobante" class="mt-3">
+          <app-encuentro-reserva [reserva]="comprobante" modo="invitado" [token]="tokenReserva" (cambio)="consultarReserva()" />
           <p>Reserva #{{ comprobante.idReserva }} · {{ comprobante.cantidadAsientos }} asiento(s) · {{ comprobante.importeTotal | currency:'ARS' }}</p>
           <p>Estado: {{ comprobante.estadoReserva }} · Pago: {{ comprobante.estadoPago }}</p>
           <button *ngIf="comprobante.estadoReserva === 'PENDIENTE' || comprobante.estadoReserva === 'CONFIRMADA'" class="btn btn-outline-danger" (click)="cancelarReserva()" [disabled]="enviando">Cancelar mi reserva</button>

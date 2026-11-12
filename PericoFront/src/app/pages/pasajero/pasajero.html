@@ -176,6 +176,8 @@
       </article>
     </section>
 
+    <app-encuentro-reserva *ngIf="reservaActiva" [reserva]="reservaActiva" modo="pasajero" (cambio)="loadPasajero()" />
+
     <section class="passenger-map-section card-custom bg-white border rounded-3 mb-4" *ngIf="reservaActiva">
       <div class="map-section-header">
         <div>

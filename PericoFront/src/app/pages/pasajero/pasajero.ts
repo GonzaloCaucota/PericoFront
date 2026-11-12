@@ -1,3 +1,4 @@
+import { EncuentroReserva } from '../../components/encuentro-reserva/encuentro-reserva';
 import { RecorridoService } from '../../services/recorrido.service';
 import { Recorrido } from '../../../models/recorrido.model';
 import { Component, ChangeDetectorRef, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
@@ -29,7 +30,7 @@ type ReservaHistorial = Reserva & {
 @Component({
   selector: 'app-pasajero',
   standalone: true,
-  imports: [CommonModule, FormsModule, MapaRutaComponent],
+  imports: [CommonModule, FormsModule, MapaRutaComponent, EncuentroReserva],
   templateUrl: './pasajero.html',
   styleUrl: './pasajero.scss'
 })
@@ -585,7 +586,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
       }
 
       if (data.estadoReserva === 'CANCELADA' || data.estadoReserva === 'NO_PRESENTADO') {
-        this.mensaje = `Tu reserva cambio a estado ${data.estadoReserva}.`;
+        this.mensaje = data.estadoReserva === 'NO_PRESENTADO' ? 'El chofer registro tu ausencia despues del horario confirmado y los 10 minutos de tolerancia.' : `Tu reserva cambio a estado ${data.estadoReserva}.`;
         this.reservaActiva = undefined;
         this.puntoChofer = undefined;
         this.puntoPasajero = undefined;
