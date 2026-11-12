@@ -711,16 +711,7 @@ export class Chofer implements OnInit {
         this.publicarUbicacion(ubicacion);
       })
       .catch((error) => {
-        if (this.latitud !== undefined && this.longitud !== undefined) {
-          this.publicarUbicacion({
-            latitud: this.latitud,
-            longitud: this.longitud,
-            precision: this.precision
-          });
-          return;
-        }
-        console.error(error);
-        this.errorUbicacion = 'No se pudo obtener la ubicacion del dispositivo.';
+        this.errorUbicacion = error?.message || 'No se pudo obtener la ubicacion del dispositivo.';
         this.cargandoUbicacion = false;
         this._changeDetectorRef.detectChanges();
       });
@@ -741,7 +732,7 @@ export class Chofer implements OnInit {
 
     this._choferService.actualizarUbicacion(this.idChofer, ubicacion).subscribe({
       next: () => {
-        this.mensajeUbicacion = 'Ubicacion enviada correctamente.';
+        this.mensajeUbicacion = `Ubicacion enviada. Margen estimado: ${Math.ceil(ubicacion.precision || 0)} m.`;
         this.cargandoUbicacion = false;
         this._changeDetectorRef.detectChanges();
       },

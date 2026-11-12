@@ -186,7 +186,7 @@
             Ubicacion y ruta
           </h2>
           <p class="text-secondary mb-0">
-            Consulta la ultima ubicacion compartida por tu chofer y calcula como llegar.
+            Consultá la última ubicación compartida por tu chofer o compartí tu posición para facilitar el encuentro.
           </p>
         </div>
 
@@ -204,16 +204,6 @@
           <button type="button" class="btn btn-light border" (click)="actualizarUbicacionChofer()">
             <i class="bi bi-arrow-clockwise me-2"></i>
             Ver ubicacion chofer
-          </button>
-
-          <button
-            type="button"
-            class="btn btn-primary"
-            (click)="comoLlegarAlChofer()"
-            [disabled]="!puntoChofer"
-          >
-            <i class="bi bi-signpost-2 me-2"></i>
-            Como llegar
           </button>
         </div>
       </div>

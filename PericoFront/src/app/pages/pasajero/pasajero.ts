@@ -330,7 +330,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
         this._pasajeroService.actualizarUbicacion(this.idPasajero, ubicacion).subscribe({
           next: () => {
             this.enviandoUbicacion = false;
-            this.mensaje = 'Ubicacion compartida con el chofer.';
+            this.mensaje = `Ubicacion compartida con el chofer. Margen estimado: ${Math.ceil(ubicacion.precision || 0)} m.`;
             this._changeDetectorRef.detectChanges();
           },
           error: (err) => {
@@ -342,8 +342,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
       })
       .catch((err) => {
         this.enviandoUbicacion = false;
-        this.mensaje = 'No se pudo obtener tu ubicacion actual.';
-        console.error(err);
+        this.mensaje = err?.message || 'No se pudo obtener tu ubicacion actual.';
         this._changeDetectorRef.detectChanges();
       });
   }
@@ -383,8 +382,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
         });
       })
       .catch((err) => {
-        this.mensaje = 'No se pudo obtener tu ubicacion actual.';
-        console.error(err);
+        this.mensaje = err?.message || 'No se pudo obtener tu ubicacion actual.';
         this._changeDetectorRef.detectChanges();
       });
   }
