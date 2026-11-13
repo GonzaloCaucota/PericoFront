@@ -132,3 +132,28 @@ describe('Ubicacion de invitado', () => {
     TestBed.inject(HttpTestingController).verify();
   });
 });
+
+describe('Viaje finalizado sin cuenta', () => {
+  beforeEach(() => {
+    localStorage.removeItem('reserva-invitado-token');
+    TestBed.configureTestingModule({ imports: [ViajesPublicos], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+  });
+  afterEach(() => localStorage.removeItem('reserva-invitado-token'));
+  it('muestra el viaje completado al consultar y retira acciones de una reserva activa', () => {
+    const fixture = TestBed.createComponent(ViajesPublicos);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(`${API_URL}/recorridos`).flush([]);
+    http.expectOne(`${API_URL}/viajes/publicos`).flush([]);
+    fixture.componentInstance.tokenReserva = 'a'.repeat(64);
+    fixture.componentInstance.consultarReserva();
+    http.expectOne(`${API_URL}/reservas/invitado`).flush({ reserva: {
+      idReserva: 5, estadoReserva: 'UTILIZADA', estadoPago: 'PAGADO', cantidadAsientos: 1, importeTotal: 1000
+    } });
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Viaje finalizado');
+    expect(fixture.nativeElement.textContent).not.toContain('Cancelar mi reserva');
+    expect(fixture.nativeElement.textContent).not.toContain('Compartir / actualizar mi ubicacion');
+    http.verify();
+  });
+});

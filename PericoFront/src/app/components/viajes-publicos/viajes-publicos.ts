@@ -55,7 +55,7 @@ export interface ViajePublico {
         <label for="comprobante-invitado">Comprobante</label>
         <input id="comprobante-invitado" class="form-control mb-2" [(ngModel)]="tokenReserva" maxlength="64" autocomplete="off">
         <button class="btn btn-outline-primary" (click)="consultarReserva()" [disabled]="enviando || !tokenReserva">Consultar reserva</button>
-        <div *ngIf="tokenReserva" class="mt-3">
+        <div *ngIf="tokenReserva && !reservaTerminada" class="mt-3">
           <p class="small">Comparte tu ubicacion actual con el chofer para que pueda encontrarte. Es opcional y se envia solo cuando pulsas el boton.</p>
           <button class="btn btn-outline-success me-2" (click)="compartirUbicacion()" [disabled]="localizando">{{ localizando ? 'Obteniendo ubicacion…' : 'Compartir / actualizar mi ubicacion' }}</button>
           <button class="btn btn-outline-secondary" (click)="retirarUbicacion()" [disabled]="localizando">Dejar de compartir</button>
@@ -63,7 +63,11 @@ export interface ViajePublico {
           <app-mapa-ruta *ngIf="puntoPasajero" idMapa="mapaInvitado" [pasajero]="puntoPasajero" />
         </div>
         <div *ngIf="comprobante" class="mt-3">
-          <app-encuentro-reserva [reserva]="comprobante" modo="invitado" [token]="tokenReserva" (cambio)="consultarReserva()" />
+          <div *ngIf="viajeFinalizado" class="alert alert-success" role="status" aria-live="polite">
+            <h4 class="h5">Viaje finalizado</h4>
+            <p class="mb-0">Tu viaje se completó. Gracias por viajar con nosotros. Ya podés reservar otro viaje.</p>
+          </div>
+          <app-encuentro-reserva *ngIf="!reservaTerminada" [reserva]="comprobante" modo="invitado" [token]="tokenReserva" (cambio)="consultarReserva()" />
           <p>Reserva #{{ comprobante.idReserva }} · {{ comprobante.cantidadAsientos }} asiento(s) · {{ comprobante.importeTotal | currency:'ARS' }}</p>
           <p>Estado: {{ comprobante.estadoReserva }} · Pago: {{ comprobante.estadoPago }}</p>
           <button *ngIf="comprobante.estadoReserva === 'PENDIENTE' || comprobante.estadoReserva === 'CONFIRMADA'" class="btn btn-outline-danger" (click)="cancelarReserva()" [disabled]="enviando">Cancelar mi reserva</button>
@@ -99,6 +103,9 @@ export class ViajesPublicos implements OnInit, OnDestroy {
   private catalogo = inject(RecorridoService);
   private socket = inject(SocketService, { optional: true });
   private cdr = inject(ChangeDetectorRef);
+  private actualizacionEstado?: ReturnType<typeof setInterval>;
+  get viajeFinalizado(): boolean { return this.comprobante?.estadoReserva === 'UTILIZADA'; }
+  get reservaTerminada(): boolean { return ['UTILIZADA', 'CANCELADA', 'NO_PRESENTADO'].includes(this.comprobante?.estadoReserva || ''); }
   private eventosEscuchados = new Set<string>();
   recorridos: Recorrido[] = [];
   viajes: ViajePublico[] = [];
@@ -177,6 +184,7 @@ export class ViajesPublicos implements OnInit, OnDestroy {
         this.tokenReserva = data.token;
         localStorage.setItem('reserva-invitado-token', data.token);
         this.comprobante = data.reserva;
+        this.registrarEventosReserva();
         this.seleccionado = undefined;
         this.nombre = ''; this.telefono = '';
         this.enviando = false;
@@ -192,19 +200,20 @@ export class ViajesPublicos implements OnInit, OnDestroy {
   private gestionarReserva(cancelar: boolean): void {
     if (this.enviando) return;
     this.enviando = true;
-    this.comprobante = undefined;
+
     const options = { headers: { 'X-Reserva-Token': this.tokenReserva.trim() } };
     const request = cancelar ? this.http.patch<any>(`${API_URL}/reservas/invitado/cancelar`, {}, options) : this.http.get<any>(`${API_URL}/reservas/invitado`, options);
     request.subscribe({
       next: data => {
         this.comprobante = data.reserva;
-        if (cancelar) {
+        this.registrarEventosReserva();
+        if (cancelar || this.reservaTerminada) {
           this.puntoPasajero = undefined;
         } else if (data.ubicacion?.latitud != null && data.ubicacion?.longitud != null) {
           this.puntoPasajero = { latitud: Number(data.ubicacion.latitud), longitud: Number(data.ubicacion.longitud), etiqueta: 'Tu ubicacion', tipo: 'pasajero' };
         }
         this.enviando = false;
-        this.mensajeReserva = cancelar ? 'Reserva cancelada.' : '';
+        if (cancelar) this.mensajeReserva = 'Reserva cancelada.';
         localStorage.setItem('reserva-invitado-token', this.tokenReserva.trim());
         if (cancelar) this.buscar();
         this.actualizarVista();
@@ -212,7 +221,15 @@ export class ViajesPublicos implements OnInit, OnDestroy {
       error: err => { this.enviando = false; this.mensajeReserva = err.error?.mensaje || 'No se pudo consultar la reserva.'; this.actualizarVista(); }
     });
   }
+  private registrarEventosReserva(): void {
+    if (!this.comprobante) return;
+    this.escucharSocket(`reserva_actualizada_${this.comprobante.idReserva}`, () => this.consultarReserva());
+  }
   ngOnInit(): void {
+    if (this.tokenReserva) this.consultarReserva();
+    this.actualizacionEstado = setInterval(() => {
+      if (this.tokenReserva && !this.reservaTerminada) this.consultarReserva();
+    }, 15000);
     this.escucharSocket('viaje_creado', () => this.buscar());
     this.catalogo.listar().subscribe({
       next: r => { this.recorridos = r; this.actualizarVista(); },
@@ -221,6 +238,7 @@ export class ViajesPublicos implements OnInit, OnDestroy {
     this.buscar();
   }
   ngOnDestroy(): void {
+    clearInterval(this.actualizacionEstado);
     this.eventosEscuchados.forEach(evento => this.socket?.dejarDeEscuchar(evento));
     this.eventosEscuchados.clear();
   }

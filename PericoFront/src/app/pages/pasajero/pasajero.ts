@@ -40,6 +40,8 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
   public viajesDisponibles: ViajeCard[] = [];
   public historial: ReservaHistorial[] = [];
   public reservaActiva?: ReservaHistorial;
+  public viajeFinalizado?: ReservaHistorial;
+  private actualizacionEstado?: ReturnType<typeof setInterval>;
 
   public recorridos: Recorrido[] = [];
   public idRecorrido: number | null = null;
@@ -75,6 +77,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadPasajero();
+    this.actualizacionEstado = setInterval(() => this.loadPasajero(), 15000);
     this.escucharEvento<any>('viaje_creado', () => {
       this.buscarViajes(true);
     });
@@ -90,6 +93,7 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearInterval(this.actualizacionEstado);
     this.eventosEscuchados.forEach(evento => this._socketService.dejarDeEscuchar(evento));
     this.eventosEscuchados.clear();
   }
@@ -111,6 +115,10 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
       next: (data: any) => {
         this.pasajero = data;
 
+        this.viajeFinalizado = data.reservas?.filter((r: ReservaHistorial) =>
+          r.estadoReserva === 'UTILIZADA' && r.viaje?.estadoViaje === 'FINALIZADO'
+        ).sort((a: ReservaHistorial, b: ReservaHistorial) => b.idReserva - a.idReserva)[0];
+
         // La reserva activa es la que todavia no termino ni fue cancelada.
         this.reservaActiva = data.reservas?.find((reserva: ReservaHistorial) =>
           (
@@ -121,6 +129,11 @@ export class PasajeroComponent implements OnInit, AfterViewInit, OnDestroy {
           reserva.viaje?.estadoViaje !== 'FINALIZADO'
         );
 
+        if (!this.reservaActiva) {
+          this.puntoChofer = undefined;
+          this.puntoPasajero = undefined;
+          this.rutaGeoJson = undefined;
+        }
         this.registrarEventosDeReservaActiva();
         this.sincronizarPuntoChoferDesdeReserva();
         this._changeDetectorRef.detectChanges();
