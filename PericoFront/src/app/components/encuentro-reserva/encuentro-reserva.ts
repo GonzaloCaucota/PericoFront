@@ -10,14 +10,14 @@ import { API_URL } from '../../config/api';
   selector: 'app-encuentro-reserva', standalone: true, imports: [CommonModule, FormsModule],
   template: `
     <section class="border rounded p-3 mt-2" *ngIf="reserva && activa">
-      <h6>Horario de encuentro · Reserva #{{ reserva.idReserva }}</h6>
-      <p class="small mb-2">El pasajero propone el horario y el chofer debe aceptarlo. La tolerancia es de {{ tolerancia }} minutos y se cuenta desde ese horario, no desde la salida del viaje.</p>
+      <h6>Horario de encuentro (opcional) · Reserva #{{ reserva.idReserva }}</h6>
+      <p class="small mb-2">Podés reservar y completar el viaje sin indicar un horario de encuentro. Si proponés uno, el chofer debe aceptarlo. La tolerancia de {{ tolerancia }} minutos para registrar una ausencia se cuenta desde el horario acordado.</p>
       <p *ngIf="reserva.horarioEncuentro" class="mb-2">
         <strong>{{ reserva.horarioEncuentro | date:'dd/MM/yyyy HH:mm':'GMT-3' }} (Jujuy)</strong>
         · {{ reserva.encuentroConfirmadoAt ? 'Aceptado por el chofer' : 'Pendiente de aceptación del chofer' }}
       </p>
       <ng-container *ngIf="modo === 'chofer'">
-        <p class="small" *ngIf="!reserva.horarioEncuentro">El pasajero todavía no propuso un horario de encuentro.</p>
+        <p class="small" *ngIf="!reserva.horarioEncuentro">Sin horario de encuentro acordado. El viaje puede realizarse y finalizarse normalmente; no se puede registrar una ausencia hasta acordar un horario y cumplir la tolerancia.</p>
         <p class="small" *ngIf="reserva.horarioEncuentro && !reserva.encuentroConfirmadoAt">Revisá el horario propuesto. Aceptalo solo si podés encontrarte con el pasajero a esa hora.</p>
         <button type="button" class="btn btn-sm btn-primary mb-2" *ngIf="reserva.horarioEncuentro && !reserva.encuentroConfirmadoAt" (click)="enviar('confirmar')" [disabled]="enviando">Aceptar horario del pasajero</button>
         <p class="small" *ngIf="reserva.encuentroConfirmadoAt">Podés registrar la ausencia a partir de las {{ limite | date:'dd/MM HH:mm':'GMT-3' }} (Jujuy), si el pasajero no llegó.</p>
@@ -30,7 +30,7 @@ import { API_URL } from '../../config/api';
         </div>
       </ng-container>
       <ng-container *ngIf="modo !== 'chofer'">
-        <label [for]="'encuentro-' + reserva.idReserva" class="small">Proponer fecha y hora de encuentro (Jujuy)</label>
+        <label [for]="'encuentro-' + reserva.idReserva" class="small">Proponer fecha y hora de encuentro (opcional, Jujuy)</label>
         <div class="d-flex flex-wrap gap-2 mb-2">
           <input type="datetime-local" [id]="'encuentro-' + reserva.idReserva" class="form-control w-auto" [(ngModel)]="propuesta" [disabled]="enviando">
           <button type="button" class="btn btn-sm btn-outline-primary" (click)="proponer()" [disabled]="enviando || !propuesta">Proponer horario</button>
