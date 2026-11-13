@@ -151,9 +151,56 @@ describe('Viaje finalizado sin cuenta', () => {
       idReserva: 5, estadoReserva: 'UTILIZADA', estadoPago: 'PAGADO', cantidadAsientos: 1, importeTotal: 1000
     } });
     fixture.detectChanges();
+    http.expectOne(`${API_URL}/viajes/publicos`).flush([]);
+    expect(fixture.componentInstance.tokenReserva).toBe('');
+    expect(localStorage.getItem('reserva-invitado-token')).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Viaje finalizado');
     expect(fixture.nativeElement.textContent).not.toContain('Cancelar mi reserva');
     expect(fixture.nativeElement.textContent).not.toContain('Compartir / actualizar mi ubicacion');
+    http.verify();
+  });
+});
+
+describe('Reinicio de reserva de invitado', () => {
+  beforeEach(() => {
+    localStorage.removeItem('reserva-invitado-token');
+    TestBed.configureTestingModule({ imports: [ViajesPublicos], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+  });
+  afterEach(() => localStorage.removeItem('reserva-invitado-token'));
+  it('cancela con el comprobante, limpia la sesion y permite reservar otro viaje', () => {
+    const c = TestBed.createComponent(ViajesPublicos).componentInstance;
+    const http = TestBed.inject(HttpTestingController);
+    c.tokenReserva = 'a'.repeat(64);
+    localStorage.setItem('reserva-invitado-token', c.tokenReserva);
+    c.comprobante = { idReserva: 5, estadoReserva: 'PENDIENTE', estadoPago: 'PENDIENTE', cantidadAsientos: 1, importeTotal: 1000 };
+    c.cancelarReserva();
+    const cancelacion = http.expectOne(`${API_URL}/reservas/invitado/cancelar`);
+    expect(cancelacion.request.method).toBe('PATCH');
+    expect(cancelacion.request.headers.get('X-Reserva-Token')).toBe('a'.repeat(64));
+    cancelacion.flush({ reserva: { ...c.comprobante, estadoReserva: 'CANCELADA' } });
+    http.expectOne(`${API_URL}/viajes/publicos`).flush([]);
+    expect(c.tokenReserva).toBe('');
+    expect(c.comprobante).toBeUndefined();
+    expect(c.enviando).toBe(false);
+    expect(localStorage.getItem('reserva-invitado-token')).toBeNull();
+    c.seleccionado = { idViaje: 9 } as any;
+    c.nombre = 'Ana Perez'; c.telefono = '3881234567';
+    c.reservar();
+    http.expectOne(`${API_URL}/reservas/invitado`).flush({ token: 'b'.repeat(64), reserva: { idReserva: 6, estadoReserva: 'PENDIENTE' } });
+    http.expectOne(`${API_URL}/viajes/publicos`).flush([]);
+    expect(c.tokenReserva).toBe('b'.repeat(64));
+    expect(c.comprobante?.idReserva).toBe(6);
+    http.verify();
+  });
+  it('conserva el comprobante y permite reintentar si falla la cancelacion', () => {
+    const c = TestBed.createComponent(ViajesPublicos).componentInstance;
+    const http = TestBed.inject(HttpTestingController);
+    c.tokenReserva = 'a'.repeat(64);
+    c.cancelarReserva();
+    http.expectOne(`${API_URL}/reservas/invitado/cancelar`).flush({ mensaje: 'Contacta al chofer.' }, { status: 409, statusText: 'Conflict' });
+    expect(c.tokenReserva).toBe('a'.repeat(64));
+    expect(c.enviando).toBe(false);
+    expect(c.mensajeReserva).toBe('Contacta al chofer.');
     http.verify();
   });
 });
